@@ -146,6 +146,21 @@
         <div>Processing Power (Dmg)<br><small>Level <span id="up-dmg-lvl">1</span></small></div>
         <button class="up-btn" onclick="buyUpgrade('dmg')" id="btn-dmg-cost">Cost: 200 Souls</button>
     </div>
+
+    <!-- NEW UPGRADES -->
+    <div class="upgrade-row">
+        <div>Visual Range (Zoom Out)<br><small>Level <span id="up-range-lvl">1</span></small></div>
+        <button class="up-btn" onclick="buyUpgrade('range')" id="btn-range-cost">Cost: 1 Gem</button>
+    </div>
+    <div class="upgrade-row">
+        <div>System Cosmetic (Glow)<br><small>Level <span id="up-cosmetic-lvl">1</span></small></div>
+        <button class="up-btn" onclick="buyUpgrade('cosmetic')" id="btn-cosmetic-cost">Cost: 20 Scraps</button>
+    </div>
+    <div class="upgrade-row">
+        <div>Algorithm Skills (Ability+)<br><small>Level <span id="up-skills-lvl">1</span></small></div>
+        <button class="up-btn" onclick="buyUpgrade('skills')" id="btn-skills-cost">Cost: 300 Souls</button>
+    </div>
+
     <br>
     <button class="up-btn" style="width:100%; height:50px; background:#ff0032; color:#fff;" onclick="toggleMenu()">CLOSE MENU</button>
 </div>
@@ -184,7 +199,10 @@
         souls: 0, level: 1, xp: 0, xpNeeded: 5,
         speed: 5, dmg: 1,
         inventory: { scraps: 0, gems: 0 },
-        upgrades: { speed: 1, hp: 1, dmg: 1 }
+        upgrades: { speed: 1, hp: 1, dmg: 1, range: 1, cosmetic: 1, skills: 1 },
+        viewScale: 1,
+        glowValue: 0,
+        dustTrail: []
     };
 
     function saveGame() {
@@ -202,7 +220,6 @@
     // --- Game Logic ---
     let BULLET_SPEED = 7;
     const SEEK_FORCE = 0.15;
-    // NERFED AI: 80% slower growth
     let speciesDNA = { dodgeWeight: 0.01, mutationRate: 0.002 }; 
 
     let enemies = [];
@@ -224,14 +241,11 @@
                 return;
             }
         }
-
         if(isPaused) return;
-
         for (let t of e.changedTouches) {
             const beamRect = beamBtn.getBoundingClientRect();
             const toastRect = toastBtn.getBoundingClientRect();
             const boostRect = boostBtn.getBoundingClientRect();
-
             if (isInside(t, boostRect)) {
                 fire();
             } else if (player.level >= 5 && isInside(t, beamRect) && beamTimer <= 0) {
@@ -280,17 +294,29 @@
     }
 
     function buyUpgrade(type) {
-        let cost = 0;
-        if(type === 'speed') cost = 100 * player.upgrades.speed;
-        if(type === 'hp') cost = 150 * player.upgrades.hp;
-        if(type === 'dmg') cost = 200 * player.upgrades.dmg;
+        let soulCost = 0;
+        let scrapCost = 0;
+        let gemCost = 0;
 
-        if(player.souls >= cost) {
-            player.souls -= cost;
+        if(type === 'speed') soulCost = 100 * player.upgrades.speed;
+        if(type === 'hp') soulCost = 150 * player.upgrades.hp;
+        if(type === 'dmg') soulCost = 200 * player.upgrades.dmg;
+        if(type === 'skills') soulCost = 300 * player.upgrades.skills;
+        if(type === 'range') gemCost = 1 * player.upgrades.range;
+        if(type === 'cosmetic') scrapCost = 20 * player.upgrades.cosmetic;
+
+        if(player.souls >= soulCost && player.inventory.scraps >= scrapCost && player.inventory.gems >= gemCost) {
+            player.souls -= soulCost;
+            player.inventory.scraps -= scrapCost;
+            player.inventory.gems -= gemCost;
             player.upgrades[type]++;
+            
             if(type === 'speed') player.speed = Math.min(8, player.speed + 0.3);
             if(type === 'hp') { player.maxHp += 20; player.hp = player.maxHp; }
             if(type === 'dmg') player.dmg += 0.5;
+            if(type === 'range') player.viewScale = 1 / (1 + (player.upgrades.range - 1) * 0.05);
+            if(type === 'cosmetic') player.glowValue = Math.min(10, player.glowValue + 0.0003);
+            
             updateUI();
             saveGame();
         }
@@ -310,19 +336,25 @@
         document.getElementById('up-speed-lvl').innerText = player.upgrades.speed;
         document.getElementById('up-hp-lvl').innerText = player.upgrades.hp;
         document.getElementById('up-dmg-lvl').innerText = player.upgrades.dmg;
+        document.getElementById('up-range-lvl').innerText = player.upgrades.range;
+        document.getElementById('up-cosmetic-lvl').innerText = player.upgrades.cosmetic;
+        document.getElementById('up-skills-lvl').innerText = player.upgrades.skills;
 
         document.getElementById('btn-speed-cost').innerText = `Cost: ${100 * player.upgrades.speed} Souls`;
         document.getElementById('btn-hp-cost').innerText = `Cost: ${150 * player.upgrades.hp} Souls`;
         document.getElementById('btn-dmg-cost').innerText = `Cost: ${200 * player.upgrades.dmg} Souls`;
+        document.getElementById('btn-range-cost').innerText = `Cost: ${1 * player.upgrades.range} Gems`;
+        document.getElementById('btn-cosmetic-cost').innerText = `Cost: ${20 * player.upgrades.cosmetic} Scraps`;
+        document.getElementById('btn-skills-cost').innerText = `Cost: ${300 * player.upgrades.skills} Souls`;
 
         if (player.level >= 5) beamBtn.style.display = 'flex';
         if (player.level >= 7) toastBtn.style.display = 'flex';
     }
 
     function fire() {
-        let vx = joystick.dirX * BULLET_SPEED;
-        let vy = joystick.dirY * BULLET_SPEED;
-        if (Math.abs(vx) < 0.1 && Math.abs(vy) < 0.1) { vy = -BULLET_SPEED; }
+        let vx = joystick.dirX * (BULLET_SPEED + (player.upgrades.skills * 0.2));
+        let vy = joystick.dirY * (BULLET_SPEED + (player.upgrades.skills * 0.2));
+        if (Math.abs(vx) < 0.1 && Math.abs(vy) < 0.1) { vy = -(BULLET_SPEED + (player.upgrades.skills * 0.2)); }
         bullets.push({ x: player.x, y: player.y, vx, vy, life: 180 });
     }
 
@@ -332,7 +364,7 @@
         beamTimer = 180;
         beamBtn.classList.add('cooldown');
         const angle = Math.atan2(closest.y - player.y, closest.x - player.x);
-        currentBeam = { x: player.x, y: player.y, angle: angle, life: 30, width: 40 };
+        currentBeam = { x: player.x, y: player.y, angle: angle, life: 30, width: 40 + (player.upgrades.skills * 5) };
     }
 
     function triggerToast() {
@@ -340,7 +372,7 @@
         toastBtn.classList.add('cooldown');
         for(let i=0; i<20; i++) {
             const angle = (Math.random() - 0.5) + Math.atan2(joystick.dirY || -1, joystick.dirX || 0);
-            flames.push({ x: player.x, y: player.y, vx: Math.cos(angle) * (4 + Math.random() * 4), vy: Math.sin(angle) * (4 + Math.random() * 4), life: 40 });
+            flames.push({ x: player.x, y: player.y, vx: Math.cos(angle) * (4 + Math.random() * 4), vy: Math.sin(angle) * (4 + Math.random() * 4), life: 40 + (player.upgrades.skills * 2) });
         }
     }
 
@@ -354,15 +386,16 @@
     }
 
     function spawnEnemy() {
+        // Enemies spawn relative to the zoomed world size
+        let spawnDist = Math.max(width, height) / player.viewScale;
         if (enemies.length < 5 + player.level * 1.5) {
             const angle = Math.random() * Math.PI * 2;
-            const dist = Math.max(width, height);
             const calculatedSpeed = 1.0 + (player.level * 0.05);
             const finalSpeed = Math.min(player.speed - 0.8, calculatedSpeed);
             
             enemies.push({
-                x: player.x + Math.cos(angle) * dist,
-                y: player.y + Math.sin(angle) * dist,
+                x: player.x + Math.cos(angle) * spawnDist,
+                y: player.y + Math.sin(angle) * spawnDist,
                 r: 14,
                 speed: finalSpeed,
                 dna: { ...speciesDNA },
@@ -373,10 +406,11 @@
     }
 
     function spawnGreenOrb() {
-        // Bright Green leveling balls spawn randomly
+        let worldW = width / player.viewScale;
+        let worldH = height / player.viewScale;
         loots.push({ 
-            x: Math.random() * (width - 40) + 20, 
-            y: Math.random() * (height - 40) + 20, 
+            x: Math.random() * (worldW - 40) + 20, 
+            y: Math.random() * (worldH - 40) + 20, 
             type: 'xpOrb', 
             life: 1200 
         });
@@ -397,8 +431,18 @@
 
         player.x += joystick.dirX * player.speed;
         player.y += joystick.dirY * player.speed;
-        player.x = Math.max(player.r, Math.min(width - player.r, player.x));
-        player.y = Math.max(player.r, Math.min(height - player.r, player.y));
+
+        // Dynamic world bounds based on zoom
+        let boundW = width / player.viewScale;
+        let boundH = height / player.viewScale;
+        player.x = Math.max(player.r, Math.min(boundW - player.r, player.x));
+        player.y = Math.max(player.r, Math.min(boundH - player.r, player.y));
+
+        // Fairy Dust Trail
+        if (player.upgrades.cosmetic > 1 && Math.random() < 0.3) {
+            player.dustTrail.push({x: player.x, y: player.y, life: 30, r: Math.random() * 2});
+        }
+        player.dustTrail.forEach((d, i) => { d.life--; if(d.life <= 0) player.dustTrail.splice(i, 1); });
 
         loots.forEach((l, li) => {
             l.life--;
@@ -431,6 +475,7 @@
         });
 
         if (currentBeam) {
+            currentBeam.x = player.x; currentBeam.y = player.y; // Keep beam attached to player
             enemies.forEach((en, ei) => {
                 let dx = en.x - currentBeam.x, dy = en.y - currentBeam.y;
                 if (Math.abs(Math.atan2(dy, dx) - currentBeam.angle) < 0.1) {
@@ -451,48 +496,36 @@
                 en.burning--; if (en.burning % 60 === 0) en.hp -= 1;
                 if (en.hp <= 0) { dropLoot(en.x, en.y); enemies.splice(ei, 1); return; }
             }
-
             let dangerX = 0, dangerY = 0;
             bullets.forEach(b => {
                 let d = Math.hypot(en.x - b.x, en.y - b.y);
                 if (d < 100) { dangerX += (en.x - b.x) / d; dangerY += (en.y - b.y) / d; }
             });
-
             const angleToPlayer = Math.atan2(player.y - en.y, player.x - en.x);
-            // AI Movement logic with nerfed dodge
             en.x += Math.cos(angleToPlayer) * en.speed + (dangerX * en.dna.dodgeWeight * 5);
             en.y += Math.sin(angleToPlayer) * en.speed + (dangerY * en.dna.dodgeWeight * 5);
-
             if (Math.hypot(player.x - en.x, player.y - en.y) < player.r + en.r) {
                 player.hp -= 3; updateUI(); enemies.splice(ei, 1);
             }
-
             bullets.forEach((b, bi) => {
                 if (Math.hypot(b.x - en.x, b.y - en.y) < en.r + 5) {
                     en.hp -= player.dmg;
                     bullets.splice(bi, 1);
                     if(en.hp <= 0) {
-                        // AI capped at 0.1 (10% IQ) for balance
                         speciesDNA.dodgeWeight = Math.min(0.1, speciesDNA.dodgeWeight + speciesDNA.mutationRate);
-                        dropLoot(en.x, en.y);
-                        enemies.splice(ei, 1);
-                        player.souls += 10;
-                        updateUI();
+                        dropLoot(en.x, en.y); enemies.splice(ei, 1); player.souls += 10; updateUI();
                     }
                 }
             });
         });
-
         if (player.hp <= 0) resetGame(false);
     }
 
     function levelUp() {
         player.level++; 
         player.xp = 0;
-        player.xpNeeded = 5 + (player.level * 2); // XP Requirement increases
-        
+        player.xpNeeded = 5 + (player.level * 2); 
         if (player.level >= 20) { resetGame(true); return; }
-        
         updateUI();
         saveGame();
         msg.style.opacity = 1;
@@ -502,11 +535,11 @@
 
     function resetGame(victory) {
         if (victory) {
-            alert("CONGRATULATIONS! You reached Level 20. Evolution Complete.");
+            alert("CONGRATULATIONS! Algorithm Perfection Reached.");
             localStorage.clear();
             location.reload();
         } else {
-            alert("Model Collapse! Souls Saved. System Integrity Reset.");
+            alert("Model Collapse! Souls Saved.");
             player.hp = player.maxHp; 
             player.xp = 0;
             enemies = []; bullets = []; loots = [];
@@ -518,17 +551,25 @@
         ctx.fillStyle = 'rgba(5, 5, 5, 0.4)';
         ctx.fillRect(0, 0, width, height);
 
+        // START CAMERA TRANSFORM
+        ctx.save();
+        ctx.scale(player.viewScale, player.viewScale);
+
         if (joystick.active) {
             ctx.strokeStyle = 'rgba(0, 255, 204, 0.15)';
             ctx.beginPath(); ctx.arc(joystick.startX, joystick.startY, 40, 0, Math.PI*2); ctx.stroke();
         }
 
+        // Draw Fairy Dust
+        player.dustTrail.forEach(d => {
+            ctx.fillStyle = `rgba(255, 255, 255, ${d.life/30})`;
+            ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI*2); ctx.fill();
+        });
+
         loots.forEach(l => {
-            // Bright Green Balls for XP
             if(l.type === 'xpOrb') {
                 ctx.fillStyle = '#00ff00';
-                ctx.shadowBlur = 15;
-                ctx.shadowColor = '#00ff00';
+                ctx.shadowBlur = 15; ctx.shadowColor = '#00ff00';
                 ctx.beginPath(); ctx.arc(l.x, l.y, 8, 0, Math.PI*2); ctx.fill();
             } else {
                 ctx.fillStyle = l.type === 'gem' ? '#ff00ff' : '#aaa';
@@ -550,7 +591,9 @@
             ctx.beginPath(); ctx.arc(f.x, f.y, 8 + (40-f.life), 0, Math.PI*2); ctx.fill();
         });
 
-        ctx.shadowBlur = 15; ctx.shadowColor = '#00ffcc';
+        // Player Glow & Sprite
+        ctx.shadowBlur = 15 + (player.upgrades.cosmetic * 0.0003); 
+        ctx.shadowColor = '#00ffcc';
         ctx.fillStyle = '#00ffcc';
         ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI*2); ctx.fill();
 
@@ -562,14 +605,14 @@
 
         ctx.shadowColor = '#fff'; ctx.fillStyle = '#fff';
         bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill(); });
-        ctx.shadowBlur = 0;
+        
+        ctx.restore(); // END CAMERA TRANSFORM
     }
 
     function loop() {
         update();
         draw();
         if (!isPaused && Math.random() < 0.03) spawnEnemy();
-        // Spawn Green XP balls periodically
         if (!isPaused && Math.random() < 0.01) spawnGreenOrb();
         requestAnimationFrame(loop);
     }
