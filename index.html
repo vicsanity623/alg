@@ -73,7 +73,7 @@
         #menu-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.95);
             z-index: 100;
             display: none;
             padding: 40px 20px;
@@ -81,11 +81,12 @@
             overflow-y: auto;
             pointer-events: auto;
         }
-        .menu-title { color: #00ffcc; font-size: 24px; border-bottom: 1px solid #00ffcc; padding-bottom: 10px; }
+        .menu-title { color: #00ffcc; font-size: 24px; border-bottom: 1px solid #00ffcc; padding-bottom: 10px; margin-bottom: 10px; }
+        .menu-souls-display { font-size: 18px; color: #fff; margin-bottom: 20px; font-weight: bold; }
         .inv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
         .inv-item { background: #111; padding: 10px; border-radius: 5px; border: 1px solid #333; }
         .upgrade-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #222; }
-        .up-btn { background: #00ffcc; color: #000; border: none; padding: 8px 12px; border-radius: 5px; font-weight: bold; }
+        .up-btn { background: #00ffcc; color: #000; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; font-size: 12px; }
         .cooldown { opacity: 0.3 !important; }
 
         #msg {
@@ -123,24 +124,27 @@
 <!-- Upgrade Menu -->
 <div id="menu-overlay">
     <div class="menu-title">NEURAL ENHANCEMENT</div>
+    <div class="menu-souls-display">Souls Collected: <span id="menu-souls-val">0</span></div>
+    
     <div class="inv-grid">
         <div class="inv-item">Scraps: <span id="inv-scraps">0</span></div>
         <div class="inv-item">Gems: <span id="inv-gems">0</span></div>
     </div>
+    
     <div class="upgrade-row">
         <div>Clock Speed (Move Spd)<br><small>Level <span id="up-speed-lvl">1</span></small></div>
-        <button class="up-btn" onclick="buyUpgrade('speed')">Cost: Souls</button>
+        <button class="up-btn" onclick="buyUpgrade('speed')" id="btn-speed-cost">Cost: 100 Souls</button>
     </div>
     <div class="upgrade-row">
         <div>Firewall (Max Integrity)<br><small>Level <span id="up-hp-lvl">1</span></small></div>
-        <button class="up-btn" onclick="buyUpgrade('hp')">Cost: Souls</button>
+        <button class="up-btn" onclick="buyUpgrade('hp')" id="btn-hp-cost">Cost: 150 Souls</button>
     </div>
     <div class="upgrade-row">
         <div>Processing Power (Dmg)<br><small>Level <span id="up-dmg-lvl">1</span></small></div>
-        <button class="up-btn" onclick="buyUpgrade('dmg')">Cost: Souls</button>
+        <button class="up-btn" onclick="buyUpgrade('dmg')" id="btn-dmg-cost">Cost: 200 Souls</button>
     </div>
     <br>
-    <button class="up-btn" style="width:100%; height:50px;" onclick="toggleMenu()">CLOSE MENU</button>
+    <button class="up-btn" style="width:100%; height:50px; background:#ff0032; color:#fff;" onclick="toggleMenu()">CLOSE MENU</button>
 </div>
 
 <canvas id="gameCanvas"></canvas>
@@ -178,7 +182,6 @@
         upgrades: { speed: 1, hp: 1, dmg: 1 }
     };
 
-    // Save/Load Logic
     function saveGame() {
         localStorage.setItem('algoCrawlerSave', JSON.stringify(player));
     }
@@ -198,7 +201,6 @@
 
     let enemies = [];
     let bullets = [];
-    let nodes = []; 
     let loots = [];
     let flames = []; 
     let currentBeam = null; 
@@ -208,24 +210,23 @@
 
     let joystick = { active: false, id: null, startX: 0, startY: 0, currX: 0, currY: 0, dirX: 0, dirY: 0 };
 
-    // --- Input Handling ---
     window.addEventListener('touchstart', e => {
-        if(isPaused) {
-             const invToggleRect = document.getElementById('inv-toggle').getBoundingClientRect();
-             for (let t of e.changedTouches) {
-                 if (isInside(t, invToggleRect)) toggleMenu();
-             }
-             return;
+        const invToggleRect = document.getElementById('inv-toggle').getBoundingClientRect();
+        for (let t of e.changedTouches) {
+            if (isInside(t, invToggleRect)) {
+                toggleMenu();
+                return;
+            }
         }
+
+        if(isPaused) return;
+
         for (let t of e.changedTouches) {
             const beamRect = beamBtn.getBoundingClientRect();
             const toastRect = toastBtn.getBoundingClientRect();
             const boostRect = boostBtn.getBoundingClientRect();
-            const invRect = document.getElementById('inv-toggle').getBoundingClientRect();
 
-            if (isInside(t, invRect)) {
-                toggleMenu();
-            } else if (isInside(t, boostRect)) {
+            if (isInside(t, boostRect)) {
                 fire();
             } else if (player.level >= 5 && isInside(t, beamRect) && beamTimer <= 0) {
                 triggerBeam();
@@ -281,7 +282,7 @@
         if(player.souls >= cost) {
             player.souls -= cost;
             player.upgrades[type]++;
-            if(type === 'speed') player.speed = Math.min(8, player.speed + 0.3); // Speed cap for player
+            if(type === 'speed') player.speed = Math.min(8, player.speed + 0.3);
             if(type === 'hp') { player.maxHp += 20; player.hp = player.maxHp; }
             if(type === 'dmg') player.dmg += 0.5;
             updateUI();
@@ -291,6 +292,7 @@
 
     function updateUI() {
         scoreEl.innerText = Math.floor(player.souls);
+        document.getElementById('menu-souls-val').innerText = Math.floor(player.souls);
         hpEl.innerText = Math.floor(player.hp);
         levelEl.innerText = player.level;
         iqEl.innerText = Math.floor(speciesDNA.dodgeWeight * 100);
@@ -300,6 +302,11 @@
         document.getElementById('up-speed-lvl').innerText = player.upgrades.speed;
         document.getElementById('up-hp-lvl').innerText = player.upgrades.hp;
         document.getElementById('up-dmg-lvl').innerText = player.upgrades.dmg;
+
+        // Update Upgrade Costs in Menu
+        document.getElementById('btn-speed-cost').innerText = `Cost: ${100 * player.upgrades.speed} Souls`;
+        document.getElementById('btn-hp-cost').innerText = `Cost: ${150 * player.upgrades.hp} Souls`;
+        document.getElementById('btn-dmg-cost').innerText = `Cost: ${200 * player.upgrades.dmg} Souls`;
 
         if (player.level >= 5) beamBtn.style.display = 'flex';
         if (player.level >= 7) toastBtn.style.display = 'flex';
@@ -343,7 +350,6 @@
         if (enemies.length < 5 + player.level * 2) {
             const angle = Math.random() * Math.PI * 2;
             const dist = Math.max(width, height);
-            // ENEMY SPEED CAP: Never faster than player - 0.5
             const calculatedSpeed = 1.0 + (player.level * 0.08);
             const finalSpeed = Math.min(player.speed - 0.5, calculatedSpeed);
             
@@ -362,8 +368,9 @@
     function dropLoot(x, y) {
         const rand = Math.random();
         let type = 'scrap';
-        if (rand > 0.95) type = 'gem';
-        else if (rand > 0.8) type = 'node';
+        // Node Spawn (The Level Up Box)
+        if (rand > 0.85) type = 'node'; 
+        else if (rand > 0.97) type = 'gem';
         loots.push({ x, y, type, life: 600 });
     }
 
@@ -449,7 +456,6 @@
                     en.hp -= player.dmg;
                     bullets.splice(bi, 1);
                     if(en.hp <= 0) {
-                        // IQ CAP: Species IQ capped at 50%
                         speciesDNA.dodgeWeight = Math.min(0.5, speciesDNA.dodgeWeight + speciesDNA.mutationRate);
                         dropLoot(en.x, en.y);
                         enemies.splice(ei, 1);
@@ -466,12 +472,7 @@
     function levelUp() {
         player.level++; 
         player.xp = 0;
-        
-        if (player.level >= 20) {
-            resetGame(true);
-            return;
-        }
-
+        if (player.level >= 20) { resetGame(true); return; }
         levelEl.innerText = player.level;
         updateUI();
         saveGame();
@@ -482,7 +483,7 @@
 
     function resetGame(victory) {
         if (victory) {
-            alert("CONGRATULATIONS! You have evolved into the Perfect Algorithm. You beat all levels.");
+            alert("CONGRATULATIONS! You have evolved into the Perfect Algorithm.");
             localStorage.clear();
             location.reload();
         } else {
@@ -504,8 +505,12 @@
         }
 
         loots.forEach(l => {
-            ctx.fillStyle = l.type === 'gem' ? '#ff00ff' : l.type === 'node' ? '#00ffcc' : '#aaa';
-            ctx.fillRect(l.x - 5, l.y - 5, 10, 10);
+            // Visualize nodes as White level-up boxes
+            ctx.fillStyle = l.type === 'gem' ? '#ff00ff' : l.type === 'node' ? '#ffffff' : '#aaa';
+            ctx.shadowBlur = l.type === 'node' ? 10 : 0;
+            ctx.shadowColor = '#fff';
+            ctx.fillRect(l.x - 5, l.y - 5, 12, 12);
+            ctx.shadowBlur = 0;
         });
 
         if (currentBeam) {
