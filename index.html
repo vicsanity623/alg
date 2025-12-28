@@ -154,7 +154,7 @@
     </div>
     <canvas id="minimap" width="100" height="100" style="display: none;"></canvas>
     <div id="ui" style="display: none;">
-        <div>Health: <div id="healthBar" style="width:100px; height:10px; background:red;"></div></div>
+        <div>Health: <div id="healthBar" style="width:100px; height:10px; background:red; display:inline-block;"></div></div>
         <div>Weapon: <span id="weapon">None</span></div>
         <div>Item: <span id="item">None</span></div>
     </div>
@@ -178,6 +178,7 @@
         let typingIndex = 0;
         let typingInterval;
         let smokeParticles = [];
+        let afterCinematicLoad = true;
 
         // Levels Data (Simplified geometry based on MGS1 layouts)
         const levels = [
@@ -203,7 +204,7 @@
                     {x: 200, y: 200, radius: 8, path: [{x:200,y:200},{x:200,y:400}], pathIndex:0, dir:1, viewAngle: Math.PI/3, viewDist: 100},
                     {x: 500, y: 300, radius: 8, path: [{x:500,y:300},{x:700,y:300}], pathIndex:0, dir:1, viewAngle: Math.PI/3, viewDist: 100}
                 ],
-                exit: {x: 400, y: 50, w: 50, h: 50, nextLevel: 1, prompt: 'Tap A to call elevator'}
+                exit: {x: 400, y: 50, w: 50, h: 50, nextLevel: 1, cinematic: 1, prompt: 'Tap A to call elevator'}
             },
             // Level 1: Heliport
             {
@@ -226,7 +227,7 @@
                     {x: 300, y: 400, radius: 8, path: [{x:300,y:400},{x:500,y:400}], pathIndex:0, dir:1, viewAngle: Math.PI/3, viewDist: 150},
                     {x: 100, y: 200, radius: 8, path: [{x:100,y:200},{x:100,y:400},{x:300,y:400},{x:300,y:200}], pathIndex:0, dir:1, viewAngle: Math.PI/3, viewDist: 150}
                 ],
-                exit: {x: 700, y: 50, w: 50, h: 50, nextLevel: 2, prompt: 'Tap A to enter vent'} // Simplified to vent
+                exit: {x: 700, y: 50, w: 50, h: 50, nextLevel: 2, cinematic: 2, prompt: 'Tap A to enter vent'} // Simplified to vent
             },
             // Level 2: Tank Hangar
             {
@@ -251,7 +252,7 @@
                     {x: 600, y: 400, radius: 8, path: [{x:600,y:400},{x:700,y:400},{x:700,y:500},{x:600,y:500}], pathIndex:0, dir:1, viewAngle: Math.PI/3, viewDist: 120},
                     {x: 400, y: 150, radius: 8, path: [{x:400,y:150},{x:400,y:350}], pathIndex:0, dir:1, viewAngle: Math.PI/3, viewDist: 120}
                 ],
-                exit: {x: 400, y: 50, w: 50, h: 50, nextLevel: 3, prompt: 'Tap A to call elevator'} // To canyon for boss
+                exit: {x: 400, y: 50, w: 50, h: 50, nextLevel: 3, cinematic: 3, prompt: 'Tap A to call elevator'} // To canyon for boss
             },
             // Level 3: Canyon (Raven Tank Boss)
             {
@@ -276,20 +277,16 @@
             }
         ];
 
-        // Dialogues (From research)
+        // Dialogues (Adjusted for levels)
         const dialogues = [
-            // Opening briefing
+            // 0: Opening for Dock
             "Campbell: Snake, can you hear me?\nSnake: Loud and clear, Colonel.\nCampbell: Good. This is a solo sneaking mission. The facility is Shadow Moses Island, Alaska. Terrorists have taken over, they have Metal Gear REX. Your objective is to infiltrate, rescue the hostages: DARPA Chief Donald Anderson and ArmsTech President Kenneth Baker, and prevent a nuclear launch.\nSnake: Got it. One-man infiltration.\nCampbell: Avoid detection. Use the radar. Good luck.",
-            // After dock
-            "Campbell: Snake, wait for the elevator. Hide behind the forklift.",
-            // Heliport
-            "Naomi: Snake, the enemies are genome soldiers, enhanced.\nMei Ling: This is the radar. Blue is you, red dots enemies, cones their view.",
-            // Tank Hangar
+            // 1: After Dock / Heliport intro
+            "Campbell: Snake, wait for the elevator. Hide behind the forklift.\nNaomi: Snake, the enemies are genome soldiers, enhanced.\nMei Ling: This is the radar. Blue is you, red dots enemies, cones their view.",
+            // 2: Tank Hangar intro
             "Campbell: Find the elevator to B1. Avoid cameras.",
-            // Before Ocelot (skipped, go to Raven)
-            "Campbell: Ahead is the canyon. Watch for the tank.",
-            // Raven boss intro
-            "Raven: Snake! I am Shaman! Feel the power of the tank!"
+            // 3: Before Canyon / Raven
+            "Campbell: Ahead is the canyon. Watch for the tank.\nRaven: Snake! I am Shaman! Feel the power of the tank!"
         ];
 
         // Resize canvas
@@ -374,15 +371,17 @@
         // Title Screen
         document.getElementById('startButton').addEventListener('click', () => {
             document.getElementById('titleScreen').style.display = 'none';
-            startCinematic(0);
+            startCinematic(0, true);
         });
 
         // Cinematic
-        function startCinematic(index) {
+        function startCinematic(index, loadAfter = true) {
             if (index >= dialogues.length) {
-                loadLevel(currentLevel);
+                if (loadAfter) loadLevel(currentLevel);
+                else gameState = 'playing';
                 return;
             }
+            afterCinematicLoad = loadAfter;
             gameState = 'cinematic';
             document.getElementById('cinematicScreen').style.display = 'flex';
             cinematicText = dialogues[index];
@@ -395,7 +394,7 @@
             document.getElementById('skipButton').onclick = () => {
                 clearInterval(typingInterval);
                 document.getElementById('cinematicText').innerHTML = cinematicText;
-                setTimeout(() => endCinematic(index), 2000);
+                setTimeout(endCinematic, 2000);
             };
         }
 
@@ -405,13 +404,17 @@
                 typingIndex++;
             } else {
                 clearInterval(typingInterval);
-                setTimeout(() => endCinematic(currentLevel), 3000);
+                setTimeout(endCinematic, 3000);
             }
         }
 
-        function endCinematic(index) {
+        function endCinematic() {
             document.getElementById('cinematicScreen').style.display = 'none';
-            startCinematic(index + 1);
+            if (afterCinematicLoad) {
+                loadLevel(currentLevel);
+            } else {
+                gameState = 'playing';
+            }
         }
 
         // Smoke Background
@@ -456,6 +459,7 @@
             gameState = 'playing';
             document.getElementById('minimap').style.display = 'block';
             document.getElementById('ui').style.display = 'block';
+            document.getElementById('healthBar').style.width = player.health + 'px';
             gameLoop();
         }
 
@@ -477,9 +481,20 @@
             const dist = Math.sqrt(dx*dx + dy*dy);
             if (dist > enemy.viewDist) return false;
             const angle = Math.atan2(dy, dx);
-            const enemyDir = enemy.dir > 0 ? 0 : Math.PI; // Simplified direction
-            const angleDiff = Math.abs(angle - enemyDir);
+            const enemyDir = getEnemyDirection(enemy); // Improved
+            const angleDiff = Math.min(Math.abs(angle - enemyDir), 2*Math.PI - Math.abs(angle - enemyDir));
             return angleDiff < enemy.viewAngle / 2;
+        }
+
+        function getEnemyDirection(enemy) {
+            // Assume direction based on movement
+            if (enemy.path) {
+                const next = enemy.path[enemy.pathIndex + enemy.dir] || enemy.path[enemy.pathIndex];
+                const dx = next.x - enemy.x;
+                const dy = next.y - enemy.y;
+                return Math.atan2(dy, dx);
+            }
+            return 0;
         }
 
         // Game Loop
@@ -487,6 +502,7 @@
             if (gameState !== 'playing') return;
 
             // Clear
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.fillStyle = levels[currentLevel].background;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -512,12 +528,20 @@
                 ctx.beginPath();
                 ctx.arc(it.x, it.y, it.radius, 0, Math.PI*2);
                 ctx.fill();
+                // Spin effect
+                it.angle = (it.angle || 0) + 0.1;
                 if (collides(player, it)) {
                     if (it.type === 'ration') player.health = Math.min(100, player.health + 20);
                     else if (it.type === 'socom') player.weapon = 'SOCOM';
                     else if (it.type === 'grenade') player.item = 'Grenade';
                     else if (it.type === 'chaff') player.item = 'Chaff';
+                    else if (it.type === 'stun') player.item = 'Stun';
+                    else if (it.type === 'thermal') player.item = 'Thermal';
+                    else if (it.type === 'mine_detector') player.item = 'Mine Detector';
                     items.splice(i, 1);
+                    document.getElementById('healthBar').style.width = player.health + 'px';
+                    document.getElementById('weapon').innerText = player.weapon || 'None';
+                    document.getElementById('item').innerText = player.item || 'None';
                 }
             });
 
@@ -525,16 +549,19 @@
             enemies.forEach(e => {
                 // Patrol
                 if (!alert && !e.type) {
-                    const path = e.path[e.pathIndex];
-                    const dx = path.x - e.x;
-                    const dy = path.y - e.y;
-                    const dist = Math.sqrt(dx*dx + dy*dy);
-                    if (dist < 1) {
-                        e.pathIndex += e.dir;
-                        if (e.pathIndex >= e.path.length - 1 || e.pathIndex <= 0) e.dir = -e.dir;
-                    } else {
-                        e.x += (dx / dist) * 1;
-                        e.y += (dy / dist) * 1;
+                    if (e.path) {
+                        const target = e.path[e.pathIndex];
+                        const dx = target.x - e.x;
+                        const dy = target.y - e.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < 1) {
+                            e.pathIndex += e.dir;
+                            if (e.pathIndex >= e.path.length || e.pathIndex < 0) e.dir = -e.dir;
+                            e.pathIndex = Math.max(0, Math.min(e.path.length - 1, e.pathIndex));
+                        } else {
+                            e.x += (dx / dist) * 1;
+                            e.y += (dy / dist) * 1;
+                        }
                     }
                 }
 
@@ -542,7 +569,7 @@
                 ctx.fillStyle = 'rgba(255,0,0,0.2)';
                 ctx.beginPath();
                 ctx.moveTo(e.x, e.y);
-                const dir = e.dir > 0 ? 0 : Math.PI;
+                const dir = getEnemyDirection(e);
                 ctx.arc(e.x, e.y, e.viewDist, dir - e.viewAngle/2, dir + e.viewAngle/2);
                 ctx.fill();
 
@@ -555,14 +582,13 @@
                 // Detection
                 if (inVision(player, e) && !alert) {
                     alert = true;
-                    // Play ALERT sound or text
                     ctx.fillStyle = 'red';
                     ctx.font = '40px Arial';
                     ctx.fillText('ALERT!', canvas.width/2 - 100, canvas.height/2);
                 }
 
                 if (alert && !e.type) {
-                    // Chase player
+                    // Chase
                     const dx = player.x - e.x;
                     const dy = player.y - e.y;
                     const dist = Math.sqrt(dx*dx + dy*dy);
@@ -573,9 +599,8 @@
                     if (collides(player, e)) player.health -= 0.5;
                 }
 
-                // Boss logic
+                // Boss
                 if (e.type === 'boss') {
-                    // Tank moves slowly towards player
                     const dx = player.x - e.x;
                     const dy = player.y - e.y;
                     const dist = Math.sqrt(dx*dx + dy*dy);
@@ -583,14 +608,13 @@
                         e.x += (dx / dist) * e.speed;
                         e.y += (dy / dist) * e.speed;
                     }
-                    // "Shoot" if close
                     if (dist < 200) player.health -= 0.1;
                     if (collides(player, e)) player.health -= 1;
 
-                    // Damage boss with grenade
-                    if (actions.B && player.item === 'Grenade' && dist < 50) {
+                    // Damage with grenade or chaff
+                    if (actions.B && (player.item === 'Grenade' || player.item === 'Chaff') && dist < 50) {
                         e.health -= 10;
-                        actions.B = false; // Debounce
+                        actions.B = false;
                     }
                     if (e.health <= 0) {
                         endGame();
@@ -604,7 +628,7 @@
             ctx.arc(player.x, player.y, player.radius, 0, Math.PI*2);
             ctx.fill();
 
-            // Actions
+            // Exit
             const lev = levels[currentLevel];
             if (lev.exit && collides(player, lev.exit)) {
                 ctx.fillStyle = 'white';
@@ -612,61 +636,68 @@
                 ctx.fillText(lev.exit.prompt, player.x, player.y - 20);
                 if (actions.A) {
                     actions.A = false;
-                    if (lev.nextLevel < levels.length) {
-                        currentLevel = lev.nextLevel;
-                        loadLevel(currentLevel);
-                        startCinematic(currentLevel);
-                    }
+                    currentLevel = lev.exit.nextLevel;
+                    startCinematic(lev.exit.cinematic, true);
                 }
             }
 
-            // Codec call simulation
-            if (Math.random() < 0.001) { // Random prompt
+            // Random Codec
+            if (Math.random() < 0.0005) { // Rare
                 ctx.fillText('Tap Y to answer', player.x, player.y - 40);
                 if (actions.Y) {
                     actions.Y = false;
-                    startCinematic(Math.floor(Math.random() * dialogues.length));
+                    const randIndex = Math.floor(Math.random() * dialogues.length);
+                    startCinematic(randIndex, false);
                 }
             }
 
-            // Attack
-            if (actions.B && player.weapon) {
-                // Simplified shoot/punch
-                enemies.forEach((e, i) => {
-                    if (collides({x: player.x + 20, y: player.y, radius: 5}, e)) {
-                        // Hit
-                        if (e.type) e.health -= 5;
-                        else enemies.splice(i, 1);
-                    }
-                });
+            // Attack / Action B
+            if (actions.B) {
+                if (player.weapon === 'SOCOM') {
+                    // Shoot
+                    enemies.forEach((e, i) => {
+                        const dx = e.x - player.x;
+                        const dy = e.y - player.y;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        if (dist < 50) { // Close range for simplicity
+                            if (e.type === 'boss') e.health -= 5;
+                            else enemies.splice(i, 1);
+                        }
+                    });
+                } else {
+                    // Punch
+                    enemies.forEach((e, i) => {
+                        if (collides({x: player.x + 20 * dx, y: player.y + 20 * dy, radius: 5}, e)) {
+                            if (e.type === 'boss') e.health -= 2;
+                            else enemies.splice(i, 1);
+                        }
+                    });
+                }
                 actions.B = false;
             }
 
-            // Health
-            if (player.health <= 0) endGame(false);
-
-            // UI
+            // Health check
             document.getElementById('healthBar').style.width = player.health + 'px';
-            document.getElementById('weapon').innerText = player.weapon || 'None';
-            document.getElementById('item').innerText = player.item || 'None';
+            if (player.health <= 0) endGame(false);
 
             // Minimap
             minimapCtx.clearRect(0, 0, 100, 100);
+            const scaleX = 100 / 800;
+            const scaleY = 100 / 600;
             minimapCtx.fillStyle = 'blue';
             minimapCtx.beginPath();
-            minimapCtx.arc(player.x / 8, player.y / 6, 2, 0, Math.PI*2);
+            minimapCtx.arc(player.x * scaleX, player.y * scaleY, 2, 0, Math.PI*2);
             minimapCtx.fill();
             enemies.forEach(e => {
                 minimapCtx.fillStyle = 'red';
                 minimapCtx.beginPath();
-                minimapCtx.arc(e.x / 8, e.y / 6, 2, 0, Math.PI*2);
+                minimapCtx.arc(e.x * scaleX, e.y * scaleY, 2, 0, Math.PI*2);
                 minimapCtx.fill();
-                // Cone simplified
                 minimapCtx.fillStyle = 'rgba(255,0,0,0.2)';
                 minimapCtx.beginPath();
-                minimapCtx.moveTo(e.x / 8, e.y / 6);
-                const dir = e.dir > 0 ? 0 : Math.PI;
-                minimapCtx.arc(e.x / 8, e.y / 6, e.viewDist / 8, dir - e.viewAngle/2, dir + e.viewAngle/2);
+                minimapCtx.moveTo(e.x * scaleX, e.y * scaleY);
+                const dir = getEnemyDirection(e);
+                minimapCtx.arc(e.x * scaleX, e.y * scaleY, e.viewDist * scaleX, dir - e.viewAngle/2, dir + e.viewAngle/2);
                 minimapCtx.fill();
             });
 
