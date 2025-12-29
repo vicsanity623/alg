@@ -21,7 +21,6 @@
             overflow: hidden;
             background-color: var(--bg-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            /* Prevents pull-to-refresh and system gestures */
             overscroll-behavior: none;
         }
 
@@ -31,7 +30,6 @@
             background-color: #0a0a0a;
         }
 
-        /* UI Overlay */
         #ui-layer {
             position: fixed;
             top: 0;
@@ -56,14 +54,12 @@
             align-items: center;
         }
 
-        /* Moved Toolbar to the Left Side for iPhone Layout */
         #toolbar {
             top: 50%;
             left: 15px;
             transform: translateY(-50%);
             flex-direction: column;
             padding: 15px 8px;
-            /* Extra padding for safe areas if needed */
             margin-left: env(safe-area-inset-left);
             max-height: 90vh;
             overflow-y: auto;
@@ -92,7 +88,7 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-            width: 44px; /* Consistent touch target size */
+            width: 44px; 
             height: 44px;
             display: flex;
             align-items: center;
@@ -113,14 +109,13 @@
         }
 
         input[type="range"] {
-            writing-mode: bt-lr; /* Vertical slider support */
+            writing-mode: bt-lr; 
             -webkit-appearance: slider-vertical;
             width: 20px;
             height: 80px;
             margin: 5px 0;
         }
 
-        /* Modal for Export */
         #export-modal {
             display: none;
             position: fixed;
@@ -164,7 +159,6 @@
         </div>
 
         <div id="export-panel" class="panel">
-            <button onclick="undo()" title="Undo">↩️</button>
             <button onclick="showExport()" style="width: auto;">Export</button>
             <button onclick="clearCanvas()" style="color: #ff4444; width: auto;">Clear</button>
         </div>
@@ -204,6 +198,13 @@
             <option value="image/jpeg">JPEG</option>
         </select>
 
+        <label style="color:#aaa; font-size:12px;">Background</label><br>
+        <select id="expBG" style="width: 100%; margin-bottom: 10px; height: 40px;">
+            <option value="#0a0a0a">Black (Canvas)</option>
+            <option value="#ffffff">White</option>
+            <option value="transparent">Transparent (PNG only)</option>
+        </select>
+
         <label style="color:#aaa; font-size:12px;">Quality (1-10)</label><br>
         <input type="number" id="expQual" value="10" style="width:100%; margin-bottom:20px; background:#000; color:#fff; border:1px solid #444; padding:5px;">
         
@@ -212,10 +213,9 @@
 
 <script>
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d', { alpha: false }); // Optimization: no alpha for background
+    const ctx = canvas.getContext('2d', { alpha: false }); 
     const zoomDisplay = document.getElementById('zoom-val');
     
-    // Application State
     let strokes = [];
     let currentStroke = null;
     let camera = { x: 0, y: 0, zoom: 1 };
@@ -223,16 +223,14 @@
     let isDragging = false;
     let lastMousePos = { x: 0, y: 0 };
     
-    // Improved Pinch Tracking
     let initialPinchDist = 0;
     let initialPinchZoom = 1;
     let isPinching = false;
 
-    // Visual Feedback State
     let visualTouches = [];
     let needsUpdate = true;
+    let lastTapTime = 0;
 
-    // Initialization
     function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
@@ -245,9 +243,17 @@
         return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
     }
 
-    // Input Handling
     canvas.addEventListener('pointerdown', e => {
         if (isPinching) return;
+
+        // Double Tap Detection for Undo
+        const now = Date.now();
+        if (now - lastTapTime < 300) {
+            undo();
+            lastTapTime = 0;
+            return;
+        }
+        lastTapTime = now;
 
         isDragging = true;
         lastMousePos = { x: e.clientX, y: e.clientY };
@@ -271,7 +277,6 @@
 
     canvas.addEventListener('pointermove', e => {
         if (isPinching) return;
-
         if (isDragging) {
             if (mode === 'pan' || (e.buttons === 2) || (e.pointerType === 'touch' && e.shiftKey)) {
                 const dx = e.clientX - lastMousePos.x;
@@ -294,7 +299,6 @@
         needsUpdate = true;
     });
 
-    // Pinch/Zoom
     canvas.addEventListener('touchstart', e => {
         if (e.touches.length === 2) {
             isPinching = true;
@@ -355,7 +359,7 @@
 
     function drawPaths(targetCtx, currentCam) {
         strokes.forEach(stroke => {
-            if (stroke.points.length < 2) return;
+            if (stroke.points.length === 0) return;
 
             targetCtx.save();
             targetCtx.lineCap = 'round';
@@ -363,15 +367,16 @@
 
             if (stroke.type === 'eraser') {
                 targetCtx.globalCompositeOperation = 'destination-out';
-                targetCtx.strokeStyle = 'rgba(255,255,255,1)';
+                targetCtx.strokeStyle = 'white';
+                targetCtx.fillStyle = 'white';
                 targetCtx.globalAlpha = 1.0;
             } else {
                 targetCtx.globalCompositeOperation = 'source-over';
                 targetCtx.strokeStyle = stroke.color;
+                targetCtx.fillStyle = stroke.color;
                 targetCtx.globalAlpha = stroke.opacity;
             }
 
-            // Visual Variations
             if (stroke.type === 'brush') {
                 targetCtx.shadowBlur = (stroke.size * currentCam.zoom) / 3;
                 targetCtx.shadowColor = stroke.color;
@@ -380,23 +385,28 @@
                 targetCtx.globalAlpha *= 0.6;
             }
 
-            targetCtx.beginPath();
-            targetCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
-            
-            for (let i = 1; i < stroke.points.length; i++) {
-                const p = stroke.points[i];
-                targetCtx.lineWidth = stroke.size * (0.4 + p.p);
-                targetCtx.lineTo(p.x, p.y);
+            // Fix: Draw Dot if only one point exists
+            if (stroke.points.length === 1) {
+                const p = stroke.points[0];
+                targetCtx.beginPath();
+                targetCtx.arc(p.x, p.y, (stroke.size * (0.4 + p.p)) / 2, 0, Math.PI * 2);
+                targetCtx.fill();
+            } else {
+                targetCtx.beginPath();
+                targetCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
+                for (let i = 1; i < stroke.points.length; i++) {
+                    const p = stroke.points[i];
+                    targetCtx.lineWidth = stroke.size * (0.4 + p.p);
+                    targetCtx.lineTo(p.x, p.y);
+                }
+                targetCtx.stroke();
             }
-            targetCtx.stroke();
             targetCtx.restore();
         });
     }
 
-    // Modern Render Loop to fix Smearing/Bugging
     function renderLoop() {
         if (needsUpdate || visualTouches.length > 0) {
-            // Force clear the entire canvas buffer every frame an update is needed
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.fillStyle = '#0a0a0a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -407,7 +417,6 @@
             drawPaths(ctx, camera);
             ctx.restore();
 
-            // Render Touch Feedback
             visualTouches.forEach((t, i) => {
                 ctx.beginPath();
                 ctx.fillStyle = t.color;
@@ -418,7 +427,7 @@
                 if (t.alpha <= 0) visualTouches.splice(i, 1);
             });
 
-            needsUpdate = visualTouches.length > 0;
+            if (visualTouches.length === 0) needsUpdate = false;
         }
         requestAnimationFrame(renderLoop);
     }
@@ -451,16 +460,19 @@
     function performExport() {
         const exportWidth = parseInt(document.getElementById('expWidth').value);
         const format = document.getElementById('expFormat').value;
+        const bgChoice = document.getElementById('expBG').value;
         const aspect = canvas.width / canvas.height;
         const exportHeight = exportWidth / aspect;
 
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = exportWidth;
         tempCanvas.height = exportHeight;
-        const tCtx = tempCanvas.getContext('2d');
+        const tCtx = tempCanvas.getContext('2d', { alpha: bgChoice === 'transparent' });
 
-        tCtx.fillStyle = '#0a0a0a';
-        tCtx.fillRect(0, 0, exportWidth, exportHeight);
+        if (bgChoice !== 'transparent') {
+            tCtx.fillStyle = bgChoice;
+            tCtx.fillRect(0, 0, exportWidth, exportHeight);
+        }
 
         const scaleMult = exportWidth / canvas.width;
         tCtx.save();
@@ -478,15 +490,10 @@
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js').then(reg => {
-                console.log('SW registered');
-            }).catch(err => {
-                console.log('SW failed', err);
-            });
+            navigator.serviceWorker.register('sw.js').catch(() => {});
         });
     }
 
-    // Start Loop
     requestAnimationFrame(renderLoop);
 </script>
 </body>
