@@ -218,12 +218,16 @@ print("--- INITIALIZING TUNNEL ---")
             const text = input.value.trim();
             if (!text || !isConnected) return;
 
+            // Hide welcome screen on first message
             document.getElementById('welcomeScreen').classList.add('hidden');
+            
+            // Append User Message
             appendMsg('user', text);
             input.value = "";
             
+            // Create empty AI message bubble for streaming
             const aiDiv = appendMsg('ai', "");
-            aiDiv.classList.add('loading-shimmer', 'h-12', 'w-full', 'rounded-xl');
+            let fullContent = "";
 
             try {
                 const response = await fetch(`${apiEndpoint}/v1/chat/completions`, {
@@ -232,14 +236,48 @@ print("--- INITIALIZING TUNNEL ---")
                     body: JSON.stringify({
                         messages: [{role: "user", content: text}],
                         temperature: parseFloat(document.getElementById('temp').value),
-                        model: "model"
+                        model: "model",
+                        stream: true // <--- ENABLE STREAMING
                     })
                 });
-                const data = await response.json();
-                aiDiv.classList.remove('loading-shimmer', 'h-12');
-                aiDiv.innerText = data.choices[0].message.content;
+
+                // Set up the stream reader
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    
+                    // The server sends multiple lines starting with "data: "
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        const message = line.replace(/^data: /, '').trim();
+                        
+                        if (message === '' || message === '[DONE]') continue;
+
+                        try {
+                            const parsed = JSON.parse(message);
+                            const content = parsed.choices[0].delta.content;
+                            if (content) {
+                                fullContent += content;
+                                aiDiv.innerText = fullContent; // Update UI in real-time
+                                
+                                // Scroll to bottom as it types
+                                const box = document.getElementById('chatBox');
+                                box.scrollTop = box.scrollHeight;
+                            }
+                        } catch (e) {
+                            console.error("Error parsing stream chunk", e);
+                        }
+                    }
+                }
             } catch (err) {
                 aiDiv.innerText = "Error: Connection lost or model timeout.";
+                console.error(err);
             }
         }
 
