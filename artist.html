@@ -126,7 +126,7 @@
             padding: 20px;
             border-radius: 15px;
             z-index: 100;
-            width: 300px;
+            width: 320px;
             border: 1px solid #444;
             pointer-events: auto;
         }
@@ -188,35 +188,36 @@
 
     <div id="export-modal-overlay" class="overlay" onclick="hideExport()"></div>
     <div id="export-modal">
-        <h3 style="color:white; margin-top:0;">Export Settings</h3>
-        <label style="color:#aaa; font-size:12px;">Width (Pixels)</label><br>
-        <input type="number" id="expWidth" value="1920" style="width:100%; margin-bottom:10px; background:#000; color:#fff; border:1px solid #444; padding:5px;"><br>
+        <h3 style="color:white; margin-top:0;">High-Res Export</h3>
+        <p style="color:#888; font-size:11px; margin-bottom:15px;">This will render the <b>Entire</b> drawing area, not just what's on screen.</p>
         
-        <label style="color:#aaa; font-size:12px;">Format</label><br>
+        <label class="label-text">Output Width (Pixels)</label>
+        <input type="number" id="expWidth" value="4096" style="width:100%; margin-bottom:10px; background:#000; color:#fff; border:1px solid #444; padding:5px;"><br>
+        
+        <label class="label-text">Format</label>
         <select id="expFormat" style="width: 100%; margin-bottom: 10px; height: 40px;">
-            <option value="image/png">PNG</option>
-            <option value="image/jpeg">JPEG</option>
+            <option value="image/png">PNG (Lossless)</option>
+            <option value="image/jpeg">JPEG (Compressed)</option>
         </select>
 
-        <label style="color:#aaa; font-size:12px;">Background</label><br>
+        <label class="label-text">Background</label>
         <select id="expBG" style="width: 100%; margin-bottom: 10px; height: 40px;">
-            <option value="#0a0a0a">Black (Canvas)</option>
+            <option value="#0a0a0a">Black</option>
             <option value="#ffffff">White</option>
-            <option value="transparent">Transparent (PNG only)</option>
+            <option value="transparent">Transparent (PNG)</option>
         </select>
 
-        <label style="color:#aaa; font-size:12px;">Quality (1-10)</label><br>
+        <label class="label-text">JPEG Quality (1-10)</label>
         <input type="number" id="expQual" value="10" style="width:100%; margin-bottom:20px; background:#000; color:#fff; border:1px solid #444; padding:5px;">
         
-        <button onclick="performExport()" style="width:100%; background: var(--accent); height:auto;">Download Art</button>
+        <button onclick="performExport()" style="width:100%; background: var(--accent); height:auto; padding: 12px;">Process Visionary Export</button>
     </div>
 
 <script>
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false }); 
     const zoomDisplay = document.getElementById('zoom-val');
     
-    // Application State
     let strokes = [];
     let currentStroke = null;
     let camera = { x: 0, y: 0, zoom: 1 };
@@ -227,9 +228,9 @@
     let initialPinchDist = 0;
     let initialPinchZoom = 1;
     let isPinching = false;
+    let lastTapTime = 0;
 
     let visualTouches = [];
-    let lastTapTime = 0;
 
     function resize() {
         canvas.width = window.innerWidth;
@@ -242,16 +243,15 @@
         return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
     }
 
-    // Input Handling
+    // Input Logic
     canvas.addEventListener('pointerdown', e => {
         if (isPinching) return;
 
         if (mode === 'draw') {
-            // Double Tap Detection only in Draw Mode
             const now = Date.now();
             if (now - lastTapTime < 350) {
-                undo(); // Undo the dot created by the first tap
-                undo(); // Undo the actual previous stroke
+                undo(); 
+                undo();
                 lastTapTime = 0;
                 isDragging = false;
                 return;
@@ -270,10 +270,9 @@
                 points: [{...pos, p: e.pressure || 0.5}]
             };
             strokes.push(currentStroke);
-            if (strokes.length > 101) strokes.shift();
+            if (strokes.length > 500) strokes.shift(); // Increased undo buffer for large works
             addVisualTouch(e.clientX, e.clientY);
         } else {
-            // Adjust Mode Logic
             isDragging = true;
             lastMousePos = { x: e.clientX, y: e.clientY };
         }
@@ -301,7 +300,6 @@
         currentStroke = null;
     });
 
-    // Navigation Gestures - Locked to Adjust Mode
     canvas.addEventListener('touchstart', e => {
         if (mode === 'pan' && e.touches.length === 2) {
             isPinching = true;
@@ -319,8 +317,7 @@
             const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
             const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
             const factor = currentDist / initialPinchDist;
-            const targetZoom = initialPinchZoom * factor;
-            applyZoom(targetZoom / camera.zoom, centerX, centerY);
+            applyZoom(initialPinchZoom * factor / camera.zoom, centerX, centerY);
         }
     }, { passive: false });
 
@@ -358,15 +355,35 @@
     }
 
     function undo() {
-        if (strokes.length > 0) {
-            strokes.pop();
-        }
+        if (strokes.length > 0) strokes.pop();
+    }
+
+    // Helper function to find the bounding box of the entire drawing
+    function getDrawingBounds() {
+        if (strokes.length === 0) return { minX: 0, minY: 0, maxX: 100, maxY: 100 };
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        strokes.forEach(s => {
+            s.points.forEach(p => {
+                if (p.x < minX) minX = p.x;
+                if (p.y < minY) minY = p.y;
+                if (p.x > maxX) maxX = p.x;
+                if (p.y > maxY) maxY = p.y;
+            });
+        });
+        // Add 5% padding
+        const w = maxX - minX;
+        const h = maxY - minY;
+        return {
+            minX: minX - w * 0.05,
+            minY: minY - h * 0.05,
+            maxX: maxX + w * 0.05,
+            maxY: maxY + h * 0.05
+        };
     }
 
     function drawPaths(targetCtx, currentCam) {
         strokes.forEach(stroke => {
             if (stroke.points.length === 0) return;
-
             targetCtx.save();
             targetCtx.lineCap = 'round';
             targetCtx.lineJoin = 'round';
@@ -410,22 +427,16 @@
         });
     }
 
-    // Fixed Render Loop: Always clears the frame to prevent Adjust Mode trails
     function renderLoop() {
-        // Essential: Clear the entire canvas and reset identity matrix every frame
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.fillStyle = '#0a0a0a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // Apply camera and draw content
         ctx.save();
         ctx.translate(camera.x, camera.y);
         ctx.scale(camera.zoom, camera.zoom);
         drawPaths(ctx, camera);
         ctx.restore();
 
-        // Render Touch Feedback
         visualTouches.forEach((t, i) => {
             ctx.beginPath();
             ctx.fillStyle = t.color;
@@ -435,7 +446,6 @@
             t.alpha -= 0.05; t.radius += 1;
             if (t.alpha <= 0) visualTouches.splice(i, 1);
         });
-
         requestAnimationFrame(renderLoop);
     }
 
@@ -464,11 +474,18 @@
     }
 
     function performExport() {
+        if (strokes.length === 0) { alert("Nothing to export!"); return; }
+
+        const bounds = getDrawingBounds();
+        const worldW = bounds.maxX - bounds.minX;
+        const worldH = bounds.maxY - bounds.minY;
+        
         const exportWidth = parseInt(document.getElementById('expWidth').value);
         const format = document.getElementById('expFormat').value;
         const bgChoice = document.getElementById('expBG').value;
-        const aspect = canvas.width / canvas.height;
-        const exportHeight = exportWidth / aspect;
+        
+        // Calculate Height based on artwork ratio
+        const exportHeight = (worldH / worldW) * exportWidth;
 
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = exportWidth;
@@ -480,15 +497,19 @@
             tCtx.fillRect(0, 0, exportWidth, exportHeight);
         }
 
-        const scaleMult = exportWidth / canvas.width;
+        // Logic: Map the entire world bounding box to the 0,0 - exportWidth,exportHeight space
+        const scaleFactor = exportWidth / worldW;
+        
         tCtx.save();
-        tCtx.translate(camera.x * scaleMult, camera.y * scaleMult);
-        tCtx.scale(camera.zoom * scaleMult, camera.zoom * scaleMult);
-        drawPaths(tCtx, camera);
+        tCtx.scale(scaleFactor, scaleFactor);
+        tCtx.translate(-bounds.minX, -bounds.minY);
+        
+        // Draw with a "zoom" of 1 relative to the bounds scale
+        drawPaths(tCtx, { zoom: 1 });
         tCtx.restore();
 
         const link = document.createElement('a');
-        link.download = `visionary-art-${Date.now()}.${format === 'image/jpeg' ? 'jpg' : 'png'}`;
+        link.download = `visionary-full-canvas-${Date.now()}.${format === 'image/jpeg' ? 'jpg' : 'png'}`;
         link.href = tempCanvas.toDataURL(format, document.getElementById('expQual').value / 10);
         link.click();
         hideExport();
@@ -500,7 +521,6 @@
         });
     }
 
-    // Kickoff loop
     requestAnimationFrame(renderLoop);
 </script>
 </body>
