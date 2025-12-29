@@ -3,70 +3,334 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Studio Custom</title>
-    <link rel="manifest" href="manifest.json">
+    <title>Grok Local Interface</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        body { background-color: #0b0b0b; color: #e5e5e5; font-family: 'Inter', sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .input-area { background: #1a1a1a; border-radius: 24px; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+        
+        body {
+            background-color: #000000;
+            color: #e5e5e5;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .grok-glow {
+            box-shadow: 0 0 15px rgba(29, 155, 240, 0.1);
+        }
+
+        .chat-gradient {
+            background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,1) 100%);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .glass {
+            background: rgba(15, 15, 15, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid #333;
+        }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 10px;
+        }
     </style>
 </head>
-<body class="flex flex-col h-screen">
+<body class="h-screen flex flex-col overflow-hidden">
 
     <!-- Header -->
-    <header class="p-4 border-b border-gray-800 flex justify-between items-center bg-black">
-        <h1 class="text-xl font-bold tracking-tight text-white">MODEL_NAME <span class="text-xs text-blue-500">PRO</span></h1>
-        <input id="api-url" type="text" placeholder="Enter Localtunnel URL" class="glass text-xs p-2 rounded w-64 outline-none">
+    <header class="h-16 border-b border-zinc-800 flex items-center justify-between px-6 bg-black z-50">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-white rounded-full flex items-center justify-center">
+                <span class="text-black font-bold text-xl italic">/</span>
+            </div>
+            <span class="font-semibold text-lg tracking-tight">Grok <span class="text-zinc-500 font-normal">2.0</span></span>
+        </div>
+
+        <div class="flex items-center gap-6">
+            <div id="connectionStatus" class="flex items-center gap-2 text-xs font-medium text-zinc-400">
+                <span class="status-dot bg-red-500 animate-pulse"></span>
+                OFFLINE
+            </div>
+            <button onclick="toggleSettings()" class="hover:bg-zinc-900 p-2 rounded-full transition-colors">
+                <i data-lucide="settings" class="w-5 h-5"></i>
+            </button>
+        </div>
     </header>
 
-    <!-- Chat Space -->
-    <div id="chat-box" class="flex-1 overflow-y-auto p-6 space-y-6">
-        <!-- Messages appear here -->
-    </div>
+    <main class="flex-1 overflow-hidden flex relative">
+        
+        <!-- Chat Interface -->
+        <div id="chatView" class="flex-1 flex flex-col h-full relative">
+            <div id="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-8 max-w-4xl mx-auto w-full">
+                <!-- Welcome Message -->
+                <div class="mt-20 text-center">
+                    <h1 class="text-4xl font-light mb-4">How can I help you today?</h1>
+                    <p class="text-zinc-500">Local GGUF model runner via Colab Bridge</p>
+                </div>
+            </div>
 
-    <!-- Input Area (Grok Style) -->
-    <div class="p-6 bg-black">
-        <div class="max-w-4xl mx-auto input-area p-4 flex items-end gap-4 shadow-2xl">
-            <textarea id="user-input" rows="1" class="w-full bg-transparent outline-none resize-none py-2" placeholder="Ask anything..."></textarea>
-            <button onclick="sendMessage()" class="bg-white text-black px-6 py-2 rounded-full font-bold hover:bg-gray-200 transition">Send</button>
+            <div class="p-6 bg-black chat-gradient">
+                <div class="max-w-4xl mx-auto relative">
+                    <textarea id="userInput" rows="1" 
+                        class="w-full bg-zinc-900 border border-zinc-700 rounded-2xl py-4 pl-6 pr-16 focus:outline-none focus:border-zinc-500 transition-all resize-none"
+                        placeholder="Ask anything..."></textarea>
+                    <button onclick="sendMessage()" class="absolute right-3 bottom-3 p-2 bg-white text-black rounded-xl hover:bg-zinc-200 transition-colors">
+                        <i data-lucide="arrow-up" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <p class="text-[10px] text-zinc-600 text-center mt-3">Grok can make mistakes. Verify its outputs.</p>
+            </div>
         </div>
-        <p class="text-center text-xs text-gray-500 mt-4">Powered by Llama-CPP-Python & Google Colab</p>
-    </div>
+
+        <!-- Settings Sidebar Overlay -->
+        <div id="settingsOverlay" class="hidden absolute inset-0 bg-black/60 z-40 backdrop-blur-sm" onclick="toggleSettings()"></div>
+        <div id="settingsPanel" class="fixed right-0 top-0 h-full w-full max-w-md glass z-50 translate-x-full transition-transform duration-300 ease-in-out p-8 overflow-y-auto">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-xl font-bold">Model Settings</h2>
+                <button onclick="toggleSettings()"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+
+            <!-- Step 1: Local Model Selection -->
+            <div class="mb-8">
+                <label class="block text-sm font-medium text-zinc-400 mb-3">1. Select Local GGUF Model</label>
+                <div class="flex items-center justify-center w-full">
+                    <label class="flex flex-col items-center justify-center w-full h-32 border-2 border-zinc-700 border-dashed rounded-xl cursor-pointer hover:bg-zinc-900 transition-colors">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <i data-lucide="file-up" class="w-8 h-8 text-zinc-500 mb-2"></i>
+                            <p id="fileName" class="text-sm text-zinc-500">Click to browse GGUF</p>
+                        </div>
+                        <input id="modelPicker" type="file" class="hidden" accept=".gguf" onchange="handleFileSelect(event)" />
+                    </label>
+                </div>
+            </div>
+
+            <!-- Step 2: Colab Connection -->
+            <div class="mb-8 border-t border-zinc-800 pt-8">
+                <label class="block text-sm font-medium text-zinc-400 mb-3">2. Google Colab Bridge</label>
+                <button onclick="showColabGuide()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-medium transition-all mb-4">
+                    Open Setup Guide
+                </button>
+                
+                <input id="endpointUrl" type="text" placeholder="Paste Cloudflare URL here" 
+                    class="w-full bg-black border border-zinc-700 rounded-xl py-3 px-4 focus:outline-none focus:border-indigo-500 text-sm">
+                <button onclick="connectToBackend()" class="w-full mt-3 border border-zinc-700 hover:bg-zinc-800 py-2 rounded-xl text-sm transition-colors">
+                    Connect API
+                </button>
+            </div>
+
+            <!-- Step 3: Parameters -->
+            <div class="space-y-6 border-t border-zinc-800 pt-8">
+                <label class="block text-sm font-medium text-zinc-400">3. Inference Parameters</label>
+                <div>
+                    <div class="flex justify-between text-xs mb-2"><span>Temperature</span><span id="v-temp">0.7</span></div>
+                    <input type="range" min="0" max="2" step="0.1" value="0.7" class="w-full accent-indigo-500" oninput="updateParam('temp', this.value)">
+                </div>
+                <div>
+                    <div class="flex justify-between text-xs mb-2"><span>Max Tokens</span><span id="v-tokens">2048</span></div>
+                    <input type="range" min="256" max="8192" step="256" value="2048" class="w-full accent-indigo-500" oninput="updateParam('tokens', this.value)">
+                </div>
+            </div>
+        </div>
+
+        <!-- Colab Guide Modal -->
+        <div id="colabModal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80">
+            <div class="bg-zinc-900 border border-zinc-700 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto p-8">
+                <div class="flex justify-between items-center mb-6">
+                    <h3 class="text-2xl font-bold">Colab Setup Guide</h3>
+                    <button onclick="hideColabGuide()"><i data-lucide="x"></i></button>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl text-sm text-blue-200">
+                        <strong>Tip:</strong> Open <a href="https://colab.research.google.com" target="_blank" class="underline font-bold text-white">Google Colab</a>, create a New Notebook, and change Runtime Type to <strong>T4 GPU</strong>.
+                    </div>
+
+                    <div class="space-y-4">
+                        <p class="text-sm font-medium">Cell 1: Install Dependencies</p>
+                        <div class="relative">
+                            <pre class="bg-black p-4 rounded-lg text-xs text-green-400 overflow-x-auto">!pip install llama-cpp-python[server]
+!wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+!dpkg -i cloudflared-linux-amd64.deb</pre>
+                            <button onclick="copyCode(1)" class="absolute top-2 right-2 bg-zinc-800 p-1 rounded hover:bg-zinc-700"><i data-lucide="copy" class="w-4 h-4"></i></button>
+                        </div>
+
+                        <p class="text-sm font-medium">Cell 2: Start Server (Paste URL in App)</p>
+                        <div class="relative">
+                            <pre id="codeCell2" class="bg-black p-4 rounded-lg text-xs text-green-400 overflow-x-auto">import os
+import threading
+
+# Command to start the server
+# Note: Since the model is on your local device, this script will 
+# wait for you to upload it to Colab's file explorer.
+model_path = "/content/model.gguf" 
+
+def run_it():
+    os.system(f"python3 -m llama_cpp.server --model {model_path} --n_gpu_layers -1 --host 0.0.0.0 --port 8000")
+
+threading.Thread(target=run_it).start()
+
+!cloudflared tunnel --url http://localhost:8000</pre>
+                            <button onclick="copyCode(2)" class="absolute top-2 right-2 bg-zinc-800 p-1 rounded hover:bg-zinc-700"><i data-lucide="copy" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
 
     <script>
-        async function sendMessage() {
-            const input = document.getElementById('user-input');
-            const chatBox = document.getElementById('chat-box');
-            const apiUrl = document.getElementById('api-url').value;
+        // Initialize Lucide Icons
+        lucide.createIcons();
 
-            if(!input.value || !apiUrl) return;
+        let apiEndpoint = "";
+        let isConnected = false;
+        let selectedModelFile = null;
+        let params = {
+            temp: 0.7,
+            tokens: 2048
+        };
 
-            // Append User Message
-            chatBox.innerHTML += `<div class="flex justify-end"><div class="glass p-4 rounded-2xl max-w-xl">${input.value}</div></div>`;
+        // UI Management
+        function toggleSettings() {
+            const panel = document.getElementById('settingsPanel');
+            const overlay = document.getElementById('settingsOverlay');
+            panel.classList.toggle('translate-x-full');
+            overlay.classList.toggle('hidden');
+        }
+
+        function showColabGuide() {
+            document.getElementById('colabModal').classList.remove('hidden');
+        }
+
+        function hideColabGuide() {
+            document.getElementById('colabModal').classList.add('hidden');
+        }
+
+        function updateParam(id, val) {
+            params[id] = val;
+            document.getElementById(`v-${id == 'temp' ? 'temp' : 'tokens'}`).innerText = val;
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) {
+                selectedModelFile = file;
+                document.getElementById('fileName').innerText = file.name;
+                document.getElementById('fileName').classList.add('text-indigo-400');
+            }
+        }
+
+        function copyCode(cell) {
+            let text = "";
+            if(cell === 1) {
+                text = `!pip install llama-cpp-python[server]\n!wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb\n!dpkg -i cloudflared-linux-amd64.deb`;
+            } else {
+                text = document.getElementById('codeCell2').innerText;
+            }
+            navigator.clipboard.writeText(text);
+            alert("Code copied to clipboard!");
+        }
+
+        // Backend Connectivity
+        async function connectToBackend() {
+            const url = document.getElementById('endpointUrl').value.trim();
+            if (!url) return alert("Please enter the Cloudflare URL");
             
-            const prompt = input.value;
-            input.value = '';
+            const cleanUrl = url.replace(/\/$/, ""); // Remove trailing slash
+            
+            const statusIndicator = document.getElementById('connectionStatus');
+            statusIndicator.innerHTML = `<span class="status-dot bg-yellow-500 animate-pulse"></span> TESTING...`;
 
             try {
-                const response = await fetch(`${apiUrl}/v1/chat/completions`, {
+                const response = await fetch(`${cleanUrl}/v1/models`);
+                if (response.ok) {
+                    apiEndpoint = cleanUrl;
+                    isConnected = true;
+                    statusIndicator.innerHTML = `<span class="status-dot bg-green-500"></span> ONLINE`;
+                    statusIndicator.classList.remove('text-zinc-400');
+                    statusIndicator.classList.add('text-green-500');
+                    toggleSettings();
+                    appendMessage('system', "Connection established. Ready to chat with your local GGUF model.");
+                } else {
+                    throw new Error();
+                }
+            } catch (err) {
+                statusIndicator.innerHTML = `<span class="status-dot bg-red-500"></span> FAILED`;
+                alert("Could not connect to Colab. Ensure the tunnel is running and the URL is correct.");
+            }
+        }
+
+        // Chat Logic
+        async function sendMessage() {
+            const input = document.getElementById('userInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            if (!isConnected) {
+                alert("Please connect to your Colab backend in Settings first.");
+                return;
+            }
+
+            appendMessage('user', text);
+            input.value = "";
+            
+            const aiMsgDiv = appendMessage('ai', "...");
+
+            try {
+                const response = await fetch(`${apiEndpoint}/v1/chat/completions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        messages: [{ role: "user", content: prompt }],
-                        stream: false
+                        messages: [{ role: "user", content: text }],
+                        temperature: parseFloat(params.temp),
+                        max_tokens: parseInt(params.tokens),
+                        model: "local-model"
                     })
                 });
-                const data = await response.json();
-                const aiMsg = data.choices[0].message.content;
 
-                // Append AI Message
-                chatBox.innerHTML += `<div class="flex justify-start"><div class="p-4 rounded-2xl max-w-2xl bg-gray-900 text-gray-200 border border-gray-800">${aiMsg}</div></div>`;
-                chatBox.scrollTop = chatBox.scrollHeight;
-            } catch (e) {
-                alert("Connection failed. Check your Localtunnel URL.");
+                const data = await response.json();
+                const aiResponse = data.choices[0].message.content;
+                aiMsgDiv.innerText = aiResponse;
+            } catch (err) {
+                aiMsgDiv.innerText = "Error: Failed to get response from backend.";
+                console.error(err);
             }
         }
+
+        function appendMessage(role, text) {
+            const container = document.getElementById('chatContainer');
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`;
+            
+            const inner = document.createElement('div');
+            inner.className = role === 'user' 
+                ? 'bg-zinc-800 text-white px-5 py-3 rounded-2xl max-w-[80%]' 
+                : 'text-zinc-200 px-5 py-3 rounded-2xl max-w-[90%] border-l-2 border-zinc-700';
+            
+            inner.innerText = text;
+            msgDiv.appendChild(inner);
+            container.appendChild(msgDiv);
+            container.scrollTop = container.scrollHeight;
+            return inner;
+        }
+
+        // Handle Enter key
+        document.getElementById('userInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
     </script>
 </body>
 </html>
