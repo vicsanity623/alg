@@ -1,7 +1,7 @@
 {
-  "name": "Algorithim-Game",
-  "short_name": "Algo",
-  "start_url": "./index.html",
+  "name": " Infinite-Canvas",
+  "short_name": "Artistic",
+  "start_url": "./artistic.html",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#c0392b",
