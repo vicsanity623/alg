@@ -7,6 +7,10 @@
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Markdown and Syntax Highlighting Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
         body { background-color: #000; color: #e5e5e5; font-family: 'Inter', sans-serif; }
@@ -18,6 +22,16 @@
         ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
         .loading-shimmer { background: linear-gradient(90deg, #111 25%, #222 50%, #111 75%); background-size: 200% 100%; animation: shimmer 2s infinite; }
         @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        
+        /* Markdown Styling */
+        .prose pre { background: #111; padding: 1rem; border-radius: 0.75rem; border: 1px solid #333; margin: 0.5rem 0; overflow-x: auto; position: relative; }
+        .prose code { font-family: 'Fira Code', monospace; font-size: 0.85rem; color: #fbbf24; }
+        .prose p { margin-bottom: 0.75rem; line-height: 1.6; }
+        .prose ul, .prose ol { margin-left: 1.5rem; margin-bottom: 1rem; list-style-type: disc; }
+        .prose h1, .prose h2, .prose h3 { font-weight: 700; color: #fff; margin-top: 1rem; margin-bottom: 0.5rem; }
+        .prose strong { color: #fff; font-weight: 600; }
+        .copy-btn { opacity: 0; transition: opacity 0.2s; }
+        .ai-bubble:hover .copy-btn { opacity: 1; }
     </style>
 </head>
 <body class="h-screen flex flex-col overflow-hidden">
@@ -31,7 +45,8 @@
             <span class="font-bold tracking-tight text-white text-lg">Gemma <span class="text-zinc-500 font-normal">12B</span></span>
         </div>
         
-        <div class="flex items-center gap-6">
+        <div class="flex items-center gap-4">
+            <button onclick="clearHistory()" class="text-[10px] text-zinc-500 hover:text-red-400 font-bold uppercase tracking-widest mr-4">Clear Chat</button>
             <div id="statusIndicator" class="flex items-center gap-2 text-[10px] font-bold tracking-widest text-zinc-500">
                 <div id="statusDot" class="w-2 h-2 rounded-full status-offline"></div>
                 SYSTEM OFFLINE
@@ -109,7 +124,7 @@
                     <label class="text-xs font-bold text-zinc-500 uppercase tracking-widest">Temperature</label>
                     <span id="v-temp" class="text-indigo-400 font-mono text-sm">0.7</span>
                 </div>
-                <input type="range" id="temp" min="0" max="1.5" step="0.1" value="0.7" class="w-full accent-white" oninput="document.getElementById('v-temp').innerText=this.value">
+                <input type="range" id="temp" min="0" max="1.5" step="0.1" value="0.7" class="w-full accent-white" oninput="document.getElementById('v-temp').innerText=this.value; saveParams();">
             </div>
         </div>
     </main>
@@ -167,8 +182,23 @@ print("--- INITIALIZING TUNNEL ---")
 
     <script>
         lucide.createIcons();
-        let apiEndpoint = "";
+        let apiEndpoint = localStorage.getItem('gemma_bridge_url') || "";
         let isConnected = false;
+        let chatHistory = JSON.parse(localStorage.getItem('gemma_chat_history')) || [];
+
+        // Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            if (apiEndpoint) {
+                document.getElementById('bridgeUrl').value = apiEndpoint;
+                testConnection();
+            }
+            if (chatHistory.length > 0) {
+                document.getElementById('welcomeScreen').classList.add('hidden');
+                chatHistory.forEach(msg => appendMsg(msg.role, msg.content, false));
+            }
+            document.getElementById('temp').value = localStorage.getItem('gemma_temp') || 0.7;
+            document.getElementById('v-temp').innerText = document.getElementById('temp').value;
+        });
 
         function toggleSettings() {
             document.getElementById('settingsPanel').classList.toggle('translate-x-full');
@@ -187,6 +217,10 @@ print("--- INITIALIZING TUNNEL ---")
             alert("Code Copied!");
         }
 
+        function saveParams() {
+            localStorage.setItem('gemma_temp', document.getElementById('temp').value);
+        }
+
         async function testConnection() {
             const url = document.getElementById('bridgeUrl').value.trim().replace(/\/$/, "");
             const btn = document.getElementById('connectBtn');
@@ -199,17 +233,24 @@ print("--- INITIALIZING TUNNEL ---")
                 const resp = await fetch(`${url}/v1/models`);
                 if (resp.ok) {
                     apiEndpoint = url;
+                    localStorage.setItem('gemma_bridge_url', url);
                     isConnected = true;
                     dot.className = "w-2 h-2 rounded-full status-online";
                     statusText.innerHTML = `<div class="w-2 h-2 rounded-full status-online"></div> SYSTEM ONLINE`;
                     statusText.className = "flex items-center gap-2 text-[10px] font-bold tracking-widest text-green-500";
                     btn.innerText = "CONNECTED";
                     btn.className = "w-full bg-green-600/20 text-green-500 border border-green-500/50 py-3 rounded-xl text-sm font-bold";
-                    setTimeout(toggleSettings, 1000);
                 } else { throw new Error(); }
             } catch (e) {
-                alert("ERROR: The model is likely still loading into the GPU or the tunnel hasn't started yet. Check your Colab logs.");
                 btn.innerText = "RETRY CONNECTION";
+                isConnected = false;
+            }
+        }
+
+        function clearHistory() {
+            if(confirm("Clear all chat history?")) {
+                localStorage.removeItem('gemma_chat_history');
+                location.reload();
             }
         }
 
@@ -218,15 +259,12 @@ print("--- INITIALIZING TUNNEL ---")
             const text = input.value.trim();
             if (!text || !isConnected) return;
 
-            // Hide welcome screen on first message
             document.getElementById('welcomeScreen').classList.add('hidden');
-            
-            // Append User Message
-            appendMsg('user', text);
+            appendMsg('user', text, true);
             input.value = "";
             
-            // Create empty AI message bubble for streaming
-            const aiDiv = appendMsg('ai', "");
+            const aiDiv = appendMsg('ai', "", false);
+            const contentDiv = aiDiv.querySelector('.prose');
             let fullContent = "";
 
             try {
@@ -237,11 +275,10 @@ print("--- INITIALIZING TUNNEL ---")
                         messages: [{role: "user", content: text}],
                         temperature: parseFloat(document.getElementById('temp').value),
                         model: "model",
-                        stream: true // <--- ENABLE STREAMING
+                        stream: true
                     })
                 });
 
-                // Set up the stream reader
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder();
 
@@ -249,14 +286,11 @@ print("--- INITIALIZING TUNNEL ---")
                     const { done, value } = await reader.read();
                     if (done) break;
 
-                    const chunk = decoder.decode(value, { stream: true });
-                    
-                    // The server sends multiple lines starting with "data: "
+                    const chunk = decoder.decode(value);
                     const lines = chunk.split('\n');
                     
                     for (const line of lines) {
                         const message = line.replace(/^data: /, '').trim();
-                        
                         if (message === '' || message === '[DONE]') continue;
 
                         try {
@@ -264,36 +298,67 @@ print("--- INITIALIZING TUNNEL ---")
                             const content = parsed.choices[0].delta.content;
                             if (content) {
                                 fullContent += content;
-                                aiDiv.innerText = fullContent; // Update UI in real-time
-                                
-                                // Scroll to bottom as it types
+                                contentDiv.innerHTML = marked.parse(fullContent);
+                                hljs.highlightAll();
                                 const box = document.getElementById('chatBox');
                                 box.scrollTop = box.scrollHeight;
                             }
-                        } catch (e) {
-                            console.error("Error parsing stream chunk", e);
-                        }
+                        } catch (e) {}
                     }
                 }
+                chatHistory.push({role: 'ai', content: fullContent});
+                localStorage.setItem('gemma_chat_history', JSON.stringify(chatHistory));
             } catch (err) {
-                aiDiv.innerText = "Error: Connection lost or model timeout.";
-                console.error(err);
+                contentDiv.innerText = "Error: Connection lost.";
             }
         }
 
-        function appendMsg(role, text) {
+        function appendMsg(role, text, save = true) {
+            if (save) {
+                chatHistory.push({role, content: text});
+                localStorage.setItem('gemma_chat_history', JSON.stringify(chatHistory));
+            }
+
             const box = document.getElementById('chatBox');
             const wrap = document.createElement('div');
             wrap.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`;
+            
             const inner = document.createElement('div');
             inner.className = role === 'user' 
                 ? 'bg-[#222] text-white px-5 py-3 rounded-2xl max-w-[85%] border border-white/5 shadow-xl' 
-                : 'text-zinc-100 px-5 py-3 rounded-2xl max-w-[95%] border-l-2 border-zinc-800';
-            inner.innerText = text;
+                : 'ai-bubble text-zinc-100 px-5 py-3 rounded-2xl max-w-[95%] border-l-2 border-zinc-800 w-full';
+            
+            const content = document.createElement('div');
+            content.className = "prose prose-invert max-w-none";
+            content.innerHTML = marked.parse(text);
+            
+            inner.appendChild(content);
+
+            if (role === 'ai') {
+                const actions = document.createElement('div');
+                actions.className = "flex mt-2 pt-2 border-t border-zinc-900 justify-end";
+                actions.innerHTML = `
+                    <button onclick="copyToClipboard(this)" class="copy-btn flex items-center gap-1 text-[10px] text-zinc-500 hover:text-white uppercase font-bold tracking-tighter transition-all">
+                        <i data-lucide="copy" class="w-3 h-3"></i> Copy
+                    </button>
+                `;
+                inner.appendChild(actions);
+                lucide.createIcons({attrs: {class: 'w-3 h-3'}, nameList: ['copy']});
+            }
+
             wrap.appendChild(inner);
             box.appendChild(wrap);
+            hljs.highlightAll();
             box.scrollTop = box.scrollHeight;
             return inner;
+        }
+
+        function copyToClipboard(btn) {
+            const text = btn.closest('.ai-bubble').querySelector('.prose').innerText;
+            navigator.clipboard.writeText(text);
+            const original = btn.innerHTML;
+            btn.innerHTML = "Copied!";
+            setTimeout(() => btn.innerHTML = original, 2000);
         }
 
         document.getElementById('userInput').addEventListener('keydown', (e) => {
