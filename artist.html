@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Infinite Canvas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Visionary Infinite Canvas</title>
     <link rel="manifest" href="manifest.json">
     <style>
         :root {
@@ -21,11 +21,13 @@
             overflow: hidden;
             background-color: var(--bg-color);
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            /* Prevents pull-to-refresh and system gestures */
+            overscroll-behavior: none;
         }
 
         canvas {
             display: block;
-            touch-action: none; /* Prevents browser handling of gestures */
+            touch-action: none; 
         }
 
         /* UI Overlay */
@@ -53,10 +55,15 @@
             align-items: center;
         }
 
+        /* Moved Toolbar to the Left Side for iPhone Layout */
         #toolbar {
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+            top: 50%;
+            left: 15px;
+            transform: translateY(-50%);
+            flex-direction: column;
+            padding: 15px 8px;
+            /* Extra padding for safe areas if needed */
+            margin-left: env(safe-area-inset-left);
         }
 
         #status-bar {
@@ -76,10 +83,19 @@
             background: #333;
             border: none;
             color: white;
-            padding: 8px 12px;
-            border-radius: 6px;
+            padding: 10px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
+            width: 44px; /* Consistent touch target size */
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        select, #sizePicker {
+            width: 60px;
         }
 
         button:active {
@@ -91,7 +107,11 @@
         }
 
         input[type="range"] {
-            width: 80px;
+            writing-mode: bt-lr; /* Vertical slider support */
+            -webkit-appearance: slider-vertical;
+            width: 20px;
+            height: 100px;
+            margin: 10px 0;
         }
 
         /* Modal for Export */
@@ -107,6 +127,7 @@
             z-index: 100;
             width: 300px;
             border: 1px solid #444;
+            pointer-events: auto;
         }
 
         .overlay {
@@ -115,6 +136,15 @@
             top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.8);
             z-index: 99;
+            pointer-events: auto;
+        }
+        
+        .label-text {
+            display: block;
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 2px;
         }
     </style>
 </head>
@@ -128,20 +158,26 @@
         </div>
 
         <div id="export-panel" class="panel">
-            <button onclick="showExport()">Export Frame</button>
-            <button onclick="clearCanvas()" style="color: #ff4444;">Clear</button>
+            <button onclick="showExport()" style="width: auto;">Export</button>
+            <button onclick="clearCanvas()" style="color: #ff4444; width: auto;">Clear</button>
         </div>
 
         <div id="toolbar" class="panel">
-            <input type="color" id="colorPicker" value="#ffffff">
+            <span class="label-text">Color</span>
+            <input type="color" id="colorPicker" value="#44ffaa">
+            
+            <span class="label-text">Tool</span>
             <select id="toolType">
-                <option value="pen">Sharp Pen</option>
-                <option value="brush">Soft Brush</option>
+                <option value="pen">Pen</option>
+                <option value="brush">Brush</option>
                 <option value="pencil">Pencil</option>
             </select>
-            <input type="range" id="sizePicker" min="1" max="50" value="2">
-            <button id="btn-draw" class="tool-active" onclick="setMode('draw')">Draw</button>
-            <button id="btn-pan" onclick="setMode('pan')">Pan/Zoom</button>
+            
+            <span class="label-text">Size</span>
+            <input type="range" id="sizePicker" min="1" max="100" value="5">
+            
+            <button id="btn-draw" class="tool-active" onclick="setMode('draw')" title="Draw">✎</button>
+            <button id="btn-pan" onclick="setMode('pan')" title="Pan/Zoom">✥</button>
         </div>
     </div>
 
@@ -149,10 +185,10 @@
     <div id="export-modal">
         <h3 style="color:white; margin-top:0;">Export Settings</h3>
         <label style="color:#aaa; font-size:12px;">Width (Pixels)</label><br>
-        <input type="number" id="expWidth" value="1920" style="width:100%; margin-bottom:10px;"><br>
+        <input type="number" id="expWidth" value="1920" style="width:100%; margin-bottom:10px; background:#000; color:#fff; border:1px solid #444; padding:5px;"><br>
         <label style="color:#aaa; font-size:12px;">Quality (1-10)</label><br>
-        <input type="number" id="expQual" value="10" style="width:100%; margin-bottom:20px;">
-        <button onclick="performExport()" style="width:100%; background: var(--accent);">Download PNG</button>
+        <input type="number" id="expQual" value="10" style="width:100%; margin-bottom:20px; background:#000; color:#fff; border:1px solid #444; padding:5px;">
+        <button onclick="performExport()" style="width:100%; background: var(--accent); height:auto;">Download PNG</button>
     </div>
 
 <script>
@@ -164,11 +200,17 @@
     let strokes = [];
     let currentStroke = null;
     let camera = { x: 0, y: 0, zoom: 1 };
-    let mode = 'draw'; // 'draw' or 'pan'
+    let mode = 'draw'; 
     let isDragging = false;
     let lastMousePos = { x: 0, y: 0 };
-    let touchStartDist = 0;
-    let touchStartZoom = 1;
+    
+    // Improved Pinch Tracking
+    let initialPinchDist = 0;
+    let initialPinchZoom = 1;
+    let isPinching = false;
+
+    // Visual Feedback State
+    let visualTouches = [];
 
     // Initialization
     function resize() {
@@ -179,12 +221,21 @@
     window.addEventListener('resize', resize);
     resize();
 
+    // Helper to get distance between two points
+    function getDist(t1, t2) {
+        return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+    }
+
     // Input Handling
     canvas.addEventListener('pointerdown', e => {
+        // Only trigger drawing if not currently pinching
+        if (isPinching) return;
+
         isDragging = true;
         lastMousePos = { x: e.clientX, y: e.clientY };
 
-        if (mode === 'draw' && e.pointerType !== 'mouse' || (mode === 'draw' && e.buttons === 1)) {
+        // Draw mode logic
+        if (mode === 'draw' && (e.pointerType !== 'mouse' || e.buttons === 1)) {
             const pos = screenToWorld(e.clientX, e.clientY);
             currentStroke = {
                 color: document.getElementById('colorPicker').value,
@@ -194,22 +245,26 @@
             };
             strokes.push(currentStroke);
         }
+        
+        // Add feedback
+        addVisualTouch(e.clientX, e.clientY);
     });
 
     canvas.addEventListener('pointermove', e => {
-        if (!isDragging) return;
+        if (isPinching) return;
 
-        if (mode === 'pan' || (e.buttons === 2) || (e.pointerType === 'touch' && e.shiftKey)) {
-            // Panning logic
-            const dx = e.clientX - lastMousePos.x;
-            const dy = e.clientY - lastMousePos.y;
-            camera.x += dx;
-            camera.y += dy;
-            lastMousePos = { x: e.clientX, y: e.clientY };
-        } else if (mode === 'draw' && currentStroke) {
-            // Drawing logic
-            const pos = screenToWorld(e.clientX, e.clientY);
-            currentStroke.points.push(pos);
+        if (isDragging) {
+            if (mode === 'pan' || (e.buttons === 2) || (e.pointerType === 'touch' && e.shiftKey)) {
+                const dx = e.clientX - lastMousePos.x;
+                const dy = e.clientY - lastMousePos.y;
+                camera.x += dx;
+                camera.y += dy;
+                lastMousePos = { x: e.clientX, y: e.clientY };
+            } else if (mode === 'draw' && currentStroke) {
+                const pos = screenToWorld(e.clientX, e.clientY);
+                currentStroke.points.push(pos);
+                addVisualTouch(e.clientX, e.clientY);
+            }
         }
         render();
     });
@@ -219,51 +274,54 @@
         currentStroke = null;
     });
 
-    // Infinite Zoom via Mouse Wheel
-    canvas.addEventListener('wheel', e => {
-        e.preventDefault();
-        const zoomSpeed = 0.001;
-        const delta = -e.deltaY;
-        const factor = Math.pow(1.1, delta / 100);
-        
-        applyZoom(factor, e.clientX, e.clientY);
-    }, { passive: false });
-
-    // Touch Pinch-to-Zoom
-    let activeTouches = [];
+    // Dedicated Touch Event Handling for reliable Pinch/Zoom
     canvas.addEventListener('touchstart', e => {
         if (e.touches.length === 2) {
-            touchStartDist = Math.hypot(
-                e.touches[0].pageX - e.touches[1].pageX,
-                e.touches[0].pageY - e.touches[1].pageY
-            );
-            touchStartZoom = camera.zoom;
+            isPinching = true;
+            isDragging = false; // Stop drawing
+            currentStroke = null; // Cancel current line
+            initialPinchDist = getDist(e.touches[0], e.touches[1]);
+            initialPinchZoom = camera.zoom;
         }
     }, { passive: false });
 
     canvas.addEventListener('touchmove', e => {
         if (e.touches.length === 2) {
-            const dist = Math.hypot(
-                e.touches[0].pageX - e.touches[1].pageX,
-                e.touches[0].pageY - e.touches[1].pageY
-            );
-            const centerX = (e.touches[0].pageX + e.touches[1].pageX) / 2;
-            const centerY = (e.touches[0].pageY + e.touches[1].pageY) / 2;
+            e.preventDefault();
+            const currentDist = getDist(e.touches[0], e.touches[1]);
+            const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+            const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
             
-            const factor = dist / touchStartDist;
-            applyZoom(factor / (camera.zoom / touchStartZoom), centerX, centerY);
+            // Calculate scale relative to the start of the pinch
+            const factor = currentDist / initialPinchDist;
+            const targetZoom = initialPinchZoom * factor;
+            
+            // Apply zoom with respect to center point
+            applyZoom(targetZoom / camera.zoom, centerX, centerY);
         }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', e => {
+        if (e.touches.length < 2) {
+            isPinching = false;
+        }
+    });
+
+    // Mouse Wheel Zoom
+    canvas.addEventListener('wheel', e => {
+        e.preventDefault();
+        const factor = Math.pow(1.1, -e.deltaY / 150);
+        applyZoom(factor, e.clientX, e.clientY);
     }, { passive: false });
 
     function applyZoom(factor, centerX, centerY) {
         const worldPos = screenToWorld(centerX, centerY);
         camera.zoom *= factor;
         
-        // Clamp zoom to prevent infinitesimal values
+        // Boundaries
         if (camera.zoom < 0.00001) camera.zoom = 0.00001;
         if (camera.zoom > 10000) camera.zoom = 10000;
 
-        // Reposition camera so zoom is centered on cursor/pinch
         camera.x = centerX - worldPos.x * camera.zoom;
         camera.y = centerY - worldPos.y * camera.zoom;
         
@@ -278,15 +336,28 @@
         };
     }
 
+    // Touch Feedback System
+    function addVisualTouch(x, y) {
+        visualTouches.push({
+            x: x,
+            y: y,
+            radius: 20,
+            alpha: 0.6,
+            color: document.getElementById('colorPicker').value
+        });
+    }
+
     // Core Rendering Engine
     function render() {
-        ctx.fillStyle = '#0a0a0a'; // Blackboard background
+        // Clear screen
+        ctx.fillStyle = '#0a0a0a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         ctx.save();
         ctx.translate(camera.x, camera.y);
         ctx.scale(camera.zoom, camera.zoom);
 
+        // Render Strokes
         strokes.forEach(stroke => {
             if (stroke.points.length < 2) return;
 
@@ -302,7 +373,7 @@
                 ctx.shadowColor = stroke.color;
             } else if (stroke.type === 'pencil') {
                 ctx.globalAlpha = 0.8;
-                ctx.setLineDash([1, 2]);
+                ctx.setLineDash([1 / camera.zoom, 2 / camera.zoom]);
             } else {
                 ctx.globalAlpha = 1.0;
                 ctx.setLineDash([]);
@@ -317,6 +388,24 @@
         });
 
         ctx.restore();
+
+        // Render UI Feedback (Touch Glow) - Screen Space
+        visualTouches.forEach((t, i) => {
+            ctx.beginPath();
+            ctx.fillStyle = t.color;
+            ctx.globalAlpha = t.alpha;
+            ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Decay
+            t.alpha -= 0.04;
+            t.radius += 1;
+            if (t.alpha <= 0) visualTouches.splice(i, 1);
+        });
+
+        if (visualTouches.length > 0) {
+            requestAnimationFrame(render);
+        }
     }
 
     // UI Logic
@@ -327,7 +416,7 @@
     }
 
     function clearCanvas() {
-        if(confirm("Clear everything?")) {
+        if(confirm("Clear all visionary artwork?")) {
             strokes = [];
             camera = { x: 0, y: 0, zoom: 1 };
             zoomDisplay.innerText = '100%';
@@ -351,21 +440,17 @@
         const aspect = canvas.width / canvas.height;
         const exportHeight = exportWidth / aspect;
 
-        // Create off-screen high-res canvas
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = exportWidth;
         tempCanvas.height = exportHeight;
         const tCtx = tempCanvas.getContext('2d');
 
-        // Draw background
         tCtx.fillStyle = '#0a0a0a';
         tCtx.fillRect(0, 0, exportWidth, exportHeight);
 
-        // Calculate scaling for the high-res export
         const scaleMult = exportWidth / canvas.width;
 
         tCtx.save();
-        // Match the current viewport but scaled up
         tCtx.translate(camera.x * scaleMult, camera.y * scaleMult);
         tCtx.scale(camera.zoom * scaleMult, camera.zoom * scaleMult);
 
@@ -375,8 +460,6 @@
             tCtx.lineWidth = stroke.size;
             tCtx.lineCap = 'round';
             tCtx.lineJoin = 'round';
-            
-            // Re-apply style logic for export
             if (stroke.type === 'brush') tCtx.globalAlpha = 0.3;
             else tCtx.globalAlpha = 1.0;
 
@@ -388,15 +471,24 @@
         });
         tCtx.restore();
 
-        // Download logic
         const link = document.createElement('a');
-        link.download = `visionary-art-${Date.now()}.png`;
+        link.download = `visionary-export-${Date.now()}.png`;
         link.href = tempCanvas.toDataURL('image/png');
         link.click();
         hideExport();
     }
 
-    // Initial Render
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').then(reg => {
+                console.log('SW registered', reg);
+            }).catch(err => {
+                console.log('SW failed', err);
+            });
+        });
+    }
+
     render();
 </script>
 </body>
