@@ -224,12 +224,14 @@
     let isDragging = false;
     let lastMousePos = { x: 0, y: 0 };
     
+    // Pinch/Touch State
     let initialPinchDist = 0;
     let initialPinchZoom = 1;
     let isPinching = false;
-
-    let visualTouches = [];
     let lastTapTime = 0;
+
+    // Visual Feedback
+    let visualTouches = [];
 
     function resize() {
         canvas.width = window.innerWidth;
@@ -246,11 +248,12 @@
     canvas.addEventListener('pointerdown', e => {
         if (isPinching) return;
 
-        // Double Tap detection logic
+        // Double Tap detection for Undo
         const now = Date.now();
-        if (now - lastTapTime < 350) {
-            undo(); // Undo the accidental first tap of this double-tap
-            undo(); // Undo the actual previous edit
+        if (now - lastTapTime < 300) {
+            // Undo twice: once for the stroke created by the first tap, once for the actual previous stroke
+            undo(); 
+            undo();
             lastTapTime = 0;
             isDragging = false;
             return;
@@ -270,8 +273,9 @@
                 points: [{...pos, p: e.pressure || 0.5}]
             };
             strokes.push(currentStroke);
-            if (strokes.length > 101) strokes.shift();
+            if (strokes.length > 100) strokes.shift();
         }
+        
         addVisualTouch(e.clientX, e.clientY);
     });
 
@@ -297,6 +301,7 @@
         currentStroke = null;
     });
 
+    // Touch Pinch/Zoom Logic
     canvas.addEventListener('touchstart', e => {
         if (e.touches.length === 2) {
             isPinching = true;
@@ -313,8 +318,12 @@
             const currentDist = getDist(e.touches[0], e.touches[1]);
             const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
             const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            
             const factor = currentDist / initialPinchDist;
-            applyZoom(initialPinchZoom * factor / camera.zoom, centerX, centerY);
+            const targetZoom = initialPinchZoom * factor;
+            
+            // Adjust camera so zoom happens from the center of pinch
+            applyZoom(targetZoom / camera.zoom, centerX, centerY);
         }
     }, { passive: false });
 
@@ -331,15 +340,22 @@
     function applyZoom(factor, centerX, centerY) {
         const worldPos = screenToWorld(centerX, centerY);
         camera.zoom *= factor;
+        
+        // Boundaries
         if (camera.zoom < 0.00001) camera.zoom = 0.00001;
         if (camera.zoom > 10000) camera.zoom = 10000;
+
         camera.x = centerX - worldPos.x * camera.zoom;
         camera.y = centerY - worldPos.y * camera.zoom;
+        
         zoomDisplay.innerText = Math.round(camera.zoom * 100) + '%';
     }
 
     function screenToWorld(sx, sy) {
-        return { x: (sx - camera.x) / camera.zoom, y: (sy - camera.y) / camera.zoom };
+        return {
+            x: (sx - camera.x) / camera.zoom,
+            y: (sy - camera.y) / camera.zoom
+        };
     }
 
     function addVisualTouch(x, y) {
@@ -365,7 +381,7 @@
 
             if (stroke.type === 'eraser') {
                 targetCtx.globalCompositeOperation = 'destination-out';
-                targetCtx.strokeStyle = 'white';
+                targetCtx.strokeStyle = 'white'; // Color doesn't matter for destination-out
                 targetCtx.fillStyle = 'white';
                 targetCtx.globalAlpha = 1.0;
             } else {
@@ -375,6 +391,7 @@
                 targetCtx.globalAlpha = stroke.opacity;
             }
 
+            // Visual Tool Styles
             if (stroke.type === 'brush') {
                 targetCtx.shadowBlur = (stroke.size * currentCam.zoom) / 3;
                 targetCtx.shadowColor = stroke.color;
@@ -383,7 +400,7 @@
                 targetCtx.globalAlpha *= 0.6;
             }
 
-            // Registration of a Dot on Tap
+            // Draw single dot for single tap
             if (stroke.points.length === 1) {
                 const p = stroke.points[0];
                 targetCtx.beginPath();
@@ -403,18 +420,21 @@
         });
     }
 
-    // High performance continuous loop fixes all smearing/lag issues
+    // High performance continuous loop fixes smearing and provides instant updates
     function renderLoop() {
+        // Reset transform to clear screen properly
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillStyle = '#0a0a0a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+        // Apply camera and draw world content
         ctx.save();
         ctx.translate(camera.x, camera.y);
         ctx.scale(camera.zoom, camera.zoom);
         drawPaths(ctx, camera);
         ctx.restore();
 
+        // Render Touch Feedback (Screen Space)
         visualTouches.forEach((t, i) => {
             ctx.beginPath();
             ctx.fillStyle = t.color;
@@ -489,6 +509,7 @@
         });
     }
 
+    // Start Loop
     requestAnimationFrame(renderLoop);
 </script>
 </body>
