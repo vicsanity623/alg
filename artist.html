@@ -216,6 +216,7 @@
     const ctx = canvas.getContext('2d', { alpha: false }); 
     const zoomDisplay = document.getElementById('zoom-val');
     
+    // Application State
     let strokes = [];
     let currentStroke = null;
     let camera = { x: 0, y: 0, zoom: 1 };
@@ -228,13 +229,11 @@
     let isPinching = false;
 
     let visualTouches = [];
-    let needsUpdate = true;
     let lastTapTime = 0;
 
     function resize() {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
-        needsUpdate = true;
     }
     window.addEventListener('resize', resize);
     resize();
@@ -243,14 +242,17 @@
         return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
     }
 
+    // Input Handling
     canvas.addEventListener('pointerdown', e => {
         if (isPinching) return;
 
-        // Double Tap Detection for Undo
+        // Double Tap detection logic
         const now = Date.now();
-        if (now - lastTapTime < 300) {
-            undo();
+        if (now - lastTapTime < 350) {
+            undo(); // Undo the accidental first tap of this double-tap
+            undo(); // Undo the actual previous edit
             lastTapTime = 0;
+            isDragging = false;
             return;
         }
         lastTapTime = now;
@@ -268,11 +270,9 @@
                 points: [{...pos, p: e.pressure || 0.5}]
             };
             strokes.push(currentStroke);
-            if (strokes.length > 100) strokes.shift();
+            if (strokes.length > 101) strokes.shift();
         }
-        
         addVisualTouch(e.clientX, e.clientY);
-        needsUpdate = true;
     });
 
     canvas.addEventListener('pointermove', e => {
@@ -289,14 +289,12 @@
                 currentStroke.points.push({...pos, p: e.pressure || 0.5});
                 addVisualTouch(e.clientX, e.clientY);
             }
-            needsUpdate = true;
         }
     });
 
     canvas.addEventListener('pointerup', () => {
         isDragging = false;
         currentStroke = null;
-        needsUpdate = true;
     });
 
     canvas.addEventListener('touchstart', e => {
@@ -338,7 +336,6 @@
         camera.x = centerX - worldPos.x * camera.zoom;
         camera.y = centerY - worldPos.y * camera.zoom;
         zoomDisplay.innerText = Math.round(camera.zoom * 100) + '%';
-        needsUpdate = true;
     }
 
     function screenToWorld(sx, sy) {
@@ -353,8 +350,9 @@
     }
 
     function undo() {
-        strokes.pop();
-        needsUpdate = true;
+        if (strokes.length > 0) {
+            strokes.pop();
+        }
     }
 
     function drawPaths(targetCtx, currentCam) {
@@ -385,7 +383,7 @@
                 targetCtx.globalAlpha *= 0.6;
             }
 
-            // Fix: Draw Dot if only one point exists
+            // Registration of a Dot on Tap
             if (stroke.points.length === 1) {
                 const p = stroke.points[0];
                 targetCtx.beginPath();
@@ -405,30 +403,28 @@
         });
     }
 
+    // High performance continuous loop fixes all smearing/lag issues
     function renderLoop() {
-        if (needsUpdate || visualTouches.length > 0) {
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.fillStyle = '#0a0a0a';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            ctx.save();
-            ctx.translate(camera.x, camera.y);
-            ctx.scale(camera.zoom, camera.zoom);
-            drawPaths(ctx, camera);
-            ctx.restore();
+        ctx.save();
+        ctx.translate(camera.x, camera.y);
+        ctx.scale(camera.zoom, camera.zoom);
+        drawPaths(ctx, camera);
+        ctx.restore();
 
-            visualTouches.forEach((t, i) => {
-                ctx.beginPath();
-                ctx.fillStyle = t.color;
-                ctx.globalAlpha = t.alpha;
-                ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
-                ctx.fill();
-                t.alpha -= 0.05; t.radius += 1;
-                if (t.alpha <= 0) visualTouches.splice(i, 1);
-            });
+        visualTouches.forEach((t, i) => {
+            ctx.beginPath();
+            ctx.fillStyle = t.color;
+            ctx.globalAlpha = t.alpha;
+            ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2);
+            ctx.fill();
+            t.alpha -= 0.05; t.radius += 1;
+            if (t.alpha <= 0) visualTouches.splice(i, 1);
+        });
 
-            if (visualTouches.length === 0) needsUpdate = false;
-        }
         requestAnimationFrame(renderLoop);
     }
 
@@ -443,7 +439,6 @@
             strokes = [];
             camera = { x: 0, y: 0, zoom: 1 };
             zoomDisplay.innerText = '100%';
-            needsUpdate = true;
         }
     }
 
