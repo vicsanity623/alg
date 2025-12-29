@@ -4,7 +4,7 @@ const CACHE_NAME = `AIC-${GAME_VERSION}`;
 const ASSETS = [
     './',
     './index.html',
-    './artistic.html'
+    './artist.html'
 ];
 
 // 1. INSTALL: Cache files and force activation
