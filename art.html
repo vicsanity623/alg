@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Visionary Art Drawing Tool</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: black;
+        }
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            touch-action: none;
+        }
+        #toolbar {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            z-index: 10;
+        }
+        #toolbar button, #toolbar input {
+            margin: 0 5px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+        }
+        #toolbar input[type="color"] {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            border: none;
+            background: transparent;
+        }
+        #toolbar select {
+            padding: 8px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+    <div id="toolbar">
+        <input type="color" id="colorPicker" value="#ffffff">
+        <select id="toolSelect">
+            <option value="pencil">Pencil</option>
+            <option value="pen">Pen</option>
+            <option value="brush">Brush</option>
+        </select>
+        <button id="clearBtn">Clear</button>
+        <button id="exportBtn">Export</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const colorPicker = document.getElementById('colorPicker');
+        const toolSelect = document.getElementById('toolSelect');
+        const clearBtn = document.getElementById('clearBtn');
+        const exportBtn = document.getElementById('exportBtn');
+
+        // Resize canvas to full screen
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // State variables
+        let strokes = []; // Array of strokes, each stroke is {points: [{x,y}], color, width}
+        let currentStroke = null;
+        let tool = 'pencil';
+        let color = '#ffffff';
+        let lineWidth = 1;
+
+        // View transform: for infinite canvas
+        let viewX = 0; // World offset x
+        let viewY = 0; // World offset y
+        let zoom = 1; // Zoom level
+
+        // Touch gesture state
+        let isDrawing = false;
+        let isPinching = false;
+        let startPinchDist = 0;
+        let startPinchZoom = 1;
+        let startPinchX = 0;
+        let startPinchY = 0;
+        let touches = {};
+
+        // Update tool and color
+        toolSelect.addEventListener('change', (e) => {
+            tool = e.target.value;
+            updateLineWidth();
+        });
+
+        colorPicker.addEventListener('input', (e) => {
+            color = e.target.value;
+        });
+
+        function updateLineWidth() {
+            if (tool === 'pencil') lineWidth = 1 / zoom;
+            else if (tool === 'pen') lineWidth = 2 / zoom;
+            else if (tool === 'brush') lineWidth = 5 / zoom;
+        }
+
+        // Clear canvas button
+        clearBtn.addEventListener('click', () => {
+            strokes = [];
+            redraw();
+        });
+
+        // Export button
+        exportBtn.addEventListener('click', () => {
+            const width = prompt('Enter export width (pixels):', 1920);
+            const height = prompt('Enter export height (pixels):', 1080);
+            if (!width || !height) return;
+
+            // Create offscreen canvas for export
+            const exportCanvas = document.createElement('canvas');
+            exportCanvas.width = parseInt(width);
+            exportCanvas.height = parseInt(height);
+            const exportCtx = exportCanvas.getContext('2d');
+
+            // Compute the world bounds of current view
+            const worldWidth = canvas.width / zoom;
+            const worldHeight = canvas.height / zoom;
+            const exportScaleX = exportCanvas.width / worldWidth;
+            const exportScaleY = exportCanvas.height / worldHeight;
+            const exportScale = Math.min(exportScaleX, exportScaleY);
+
+            // Fill background
+            exportCtx.fillStyle = 'black';
+            exportCtx.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
+
+            // Apply transform: center the view
+            exportCtx.translate(exportCanvas.width / 2, exportCanvas.height / 2);
+            exportCtx.scale(exportScale, exportScale);
+            exportCtx.translate(-viewX - worldWidth / 2, -viewY - worldHeight / 2);
+
+            // Draw all strokes
+            strokes.forEach(stroke => {
+                exportCtx.beginPath();
+                stroke.points.forEach((pt, i) => {
+                    if (i === 0) exportCtx.moveTo(pt.x, pt.y);
+                    else exportCtx.lineTo(pt.x, pt.y);
+                });
+                exportCtx.strokeStyle = stroke.color;
+                exportCtx.lineWidth = stroke.width * zoom; // Adjust for export scale
+                exportCtx.lineCap = 'round';
+                exportCtx.lineJoin = 'round';
+                exportCtx.stroke();
+            });
+
+            // Download
+            const link = document.createElement('a');
+            link.download = 'art.png';
+            link.href = exportCanvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // Redraw function
+        function redraw() {
+            ctx.fillStyle = 'black';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.scale(zoom, zoom);
+            ctx.translate(-viewX, -viewY);
+
+            strokes.forEach(stroke => {
+                ctx.beginPath();
+                stroke.points.forEach((pt, i) => {
+                    if (i === 0) ctx.moveTo(pt.x, pt.y);
+                    else ctx.lineTo(pt.x, pt.y);
+                });
+                ctx.strokeStyle = stroke.color;
+                ctx.lineWidth = stroke.width;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+            });
+
+            if (currentStroke) {
+                ctx.beginPath();
+                currentStroke.points.forEach((pt, i) => {
+                    if (i === 0) ctx.moveTo(pt.x, pt.y);
+                    else ctx.lineTo(pt.x, pt.y);
+                });
+                ctx.strokeStyle = currentStroke.color;
+                ctx.lineWidth = currentStroke.width;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+            }
+
+            ctx.restore();
+        }
+
+        // Get world coordinates from screen
+        function screenToWorld(x, y) {
+            const rect = canvas.getBoundingClientRect();
+            x -= rect.left + canvas.width / 2;
+            y -= rect.top + canvas.height / 2;
+            x /= zoom;
+            y /= zoom;
+            x += viewX;
+            y += viewY;
+            return {x, y};
+        }
+
+        // Touch events
+        canvas.addEventListener('touchstart', handleTouchStart);
+        canvas.addEventListener('touchmove', handleTouchMove);
+        canvas.addEventListener('touchend', handleTouchEnd);
+        canvas.addEventListener('touchcancel', handleTouchEnd);
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            updateTouches(e);
+
+            if (e.touches.length === 1) {
+                isDrawing = true;
+                const touch = e.touches[0];
+                const pt = screenToWorld(touch.clientX, touch.clientY);
+                updateLineWidth();
+                currentStroke = {
+                    points: [pt],
+                    color: color,
+                    width: lineWidth
+                };
+            } else if (e.touches.length === 2) {
+                isPinching = true;
+                isDrawing = false;
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                startPinchDist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                startPinchZoom = zoom;
+                startPinchX = (t1.clientX + t2.clientX) / 2;
+                startPinchY = (t1.clientY + t2.clientY) / 2;
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            updateTouches(e);
+
+            if (isDrawing && e.touches.length === 1) {
+                const touch = e.touches[0];
+                const pt = screenToWorld(touch.clientX, touch.clientY);
+                currentStroke.points.push(pt);
+                redraw();
+            } else if (isPinching && e.touches.length === 2) {
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
+                const midX = (t1.clientX + t2.clientX) / 2;
+                const midY = (t1.clientY + t2.clientY) / 2;
+
+                // Zoom
+                const newZoom = startPinchZoom * (dist / startPinchDist);
+                const zoomDiff = newZoom - zoom;
+
+                // Adjust viewX, viewY to zoom towards pinch center
+                const pinchWorldBefore = screenToWorld(startPinchX, startPinchY);
+                zoom = newZoom;
+                const pinchWorldAfter = screenToWorld(startPinchX, startPinchY);
+                viewX += pinchWorldBefore.x - pinchWorldAfter.x;
+                viewY += pinchWorldBefore.y - pinchWorldAfter.y;
+
+                // Pan if midpoint moved
+                const newMidWorld = screenToWorld(midX, midY);
+                viewX += pinchWorldAfter.x - newMidWorld.x;
+                viewY += pinchWorldAfter.y - newMidWorld.y;
+
+                redraw();
+            } else if (e.touches.length === 2) {
+                // Pan with two fingers if not pinching? But here pinching handles both
+            }
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            updateTouches(e);
+
+            if (isDrawing && currentStroke && currentStroke.points.length > 1) {
+                strokes.push(currentStroke);
+                currentStroke = null;
+            }
+            isDrawing = false;
+            isPinching = false;
+
+            if (e.touches.length < 2) {
+                isPinching = false;
+            }
+            if (e.touches.length === 0) {
+                isDrawing = false;
+            }
+            redraw();
+        }
+
+        function updateTouches(e) {
+            touches = {};
+            for (let i = 0; i < e.touches.length; i++) {
+                touches[e.touches[i].identifier] = e.touches[i];
+            }
+        }
+
+        // For desktop mouse support (optional)
+        let isMouseDrawing = false;
+        canvas.addEventListener('mousedown', (e) => {
+            const pt = screenToWorld(e.clientX, e.clientY);
+            updateLineWidth();
+            currentStroke = {
+                points: [pt],
+                color: color,
+                width: lineWidth
+            };
+            isMouseDrawing = true;
+        });
+        canvas.addEventListener('mousemove', (e) => {
+            if (isMouseDrawing) {
+                const pt = screenToWorld(e.clientX, e.clientY);
+                currentStroke.points.push(pt);
+                redraw();
+            }
+        });
+        canvas.addEventListener('mouseup', (e) => {
+            if (isMouseDrawing && currentStroke) {
+                strokes.push(currentStroke);
+                currentStroke = null;
+                isMouseDrawing = false;
+                redraw();
+            }
+        });
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+            const mouseWorldBefore = screenToWorld(e.clientX, e.clientY);
+            zoom *= zoomFactor;
+            const mouseWorldAfter = screenToWorld(e.clientX, e.clientY);
+            viewX += mouseWorldBefore.x - mouseWorldAfter.x;
+            viewY += mouseWorldBefore.y - mouseWorldAfter.y;
+            redraw();
+        });
+
+        // Initial draw
+        redraw();
+    </script>
+</body>
+</html>
