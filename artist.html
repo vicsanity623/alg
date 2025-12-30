@@ -8,228 +8,143 @@
     <style>
         :root {
             --bg-color: #0a0a0a;
-            --ui-bg: rgba(30, 30, 30, 0.85);
+            --ui-bg: rgba(30, 30, 30, 0.9);
             --accent: #007AFF;
             --text: #ffffff;
         }
 
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: var(--bg-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             overscroll-behavior: none;
         }
 
-        canvas {
-            display: block;
-            touch-action: none; 
-            background-color: #0a0a0a;
-        }
+        canvas { display: block; touch-action: none; background-color: #0a0a0a; }
 
-        #ui-layer {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 10;
-        }
+        #ui-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
 
         .panel {
-            position: absolute;
-            background: var(--ui-bg);
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 10px;
-            pointer-events: auto;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.1);
-            display: flex;
-            gap: 10px;
-            align-items: center;
+            position: absolute; background: var(--ui-bg); backdrop-filter: blur(15px);
+            border-radius: 14px; padding: 12px; pointer-events: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.1);
+            display: flex; gap: 12px; align-items: center;
         }
 
         #toolbar {
-            top: 50%;
-            left: 15px;
-            transform: translateY(-50%);
-            flex-direction: column;
-            padding: 15px 8px;
+            top: 50%; left: 15px; transform: translateY(-50%);
+            flex-direction: column; padding: 20px 10px;
             margin-left: env(safe-area-inset-left);
-            max-height: 90vh;
-            overflow-y: auto;
+            max-height: 85vh; overflow-y: auto;
         }
 
-        #status-bar {
-            top: 20px;
-            left: 20px;
-            font-size: 12px;
-            color: var(--text);
-            opacity: 0.7;
-        }
-
-        #export-panel {
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 8px;
-        }
+        #status-bar { top: 20px; left: 20px; font-size: 11px; color: var(--text); opacity: 0.8; font-weight: bold; }
+        #export-panel { top: 20px; right: 20px; display: flex; gap: 8px; }
 
         button, input[type="color"], select {
-            background: #333;
-            border: none;
-            color: white;
-            padding: 10px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            width: 44px; 
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
+            background: #222; border: none; color: white;
+            padding: 10px; border-radius: 10px; cursor: pointer;
+            font-size: 16px; width: 48px; height: 48px;
+            display: flex; align-items: center; justify-content: center;
         }
 
-        select, #sizePicker {
-            width: 60px;
-        }
-
-        button:active {
-            background: var(--accent);
-        }
-
-        .tool-active {
-            background: var(--accent) !important;
-        }
+        select, #sizePicker { width: 65px; }
+        button:active { background: var(--accent); }
+        .tool-active { background: var(--accent) !important; box-shadow: 0 0 15px var(--accent); }
 
         input[type="range"] {
-            writing-mode: bt-lr; 
-            -webkit-appearance: slider-vertical;
-            width: 20px;
-            height: 80px;
-            margin: 5px 0;
+            writing-mode: bt-lr; -webkit-appearance: slider-vertical;
+            width: 24px; height: 100px; margin: 10px 0;
         }
 
         #export-modal {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #1e1e1e;
-            padding: 20px;
-            border-radius: 15px;
-            z-index: 100;
-            width: 300px;
-            border: 1px solid #444;
-            pointer-events: auto;
+            display: none; position: fixed; top: 50%; left: 50%;
+            transform: translate(-50%, -50%); background: #161616;
+            padding: 25px; border-radius: 20px; z-index: 100;
+            width: 320px; border: 1px solid #333; pointer-events: auto;
         }
 
         .overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.8);
-            z-index: 99;
-            pointer-events: auto;
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 99; pointer-events: auto;
         }
         
-        .label-text {
-            display: block;
-            font-size: 10px;
-            text-transform: uppercase;
-            color: #888;
-            margin-bottom: 2px;
-        }
+        .label-text { display: block; font-size: 9px; text-transform: uppercase; color: #999; letter-spacing: 1px; margin-bottom: 4px; }
     </style>
 </head>
 <body>
 
-    <canvas id="canvas"></canvas>
+<canvas id="canvas"></canvas>
 
-    <div id="ui-layer">
-        <div id="status-bar" class="panel">
-            Zoom: <span id="zoom-val">100%</span>
-        </div>
+<div id="ui-layer">
+    <div id="status-bar" class="panel">ZOOM: <span id="zoom-val">100%</span></div>
 
-        <div id="export-panel" class="panel">
-            <button onclick="showExport()" style="width: auto;">Export</button>
-            <button onclick="clearCanvas()" style="color: #ff4444; width: auto;">Clear</button>
-        </div>
-
-        <div id="toolbar" class="panel">
-            <span class="label-text">Color</span>
-            <input type="color" id="colorPicker" value="#44ffaa">
-            
-            <span class="label-text">Tool</span>
-            <select id="toolType">
-                <option value="pen">Pen</option>
-                <option value="brush">Brush</option>
-                <option value="pencil">Pencil</option>
-                <option value="eraser">Eraser</option>
-            </select>
-            
-            <span class="label-text">Size</span>
-            <input type="range" id="sizePicker" min="1" max="150" value="10">
-
-            <span class="label-text">Flow</span>
-            <input type="range" id="opacityPicker" min="1" max="100" value="100">
-            
-            <button id="btn-draw" class="tool-active" onclick="setMode('draw')" title="Draw Mode">✎</button>
-            <button id="btn-pan" onclick="setMode('pan')" title="Adjust Mode">✥</button>
-        </div>
+    <div id="export-panel" class="panel">
+        <button onclick="showExport()" style="width: auto; padding: 0 15px;">Export</button>
+        <button onclick="clearCanvas()" style="color: #ff4444; width: auto; padding: 0 15px;">Clear</button>
     </div>
 
-    <div id="export-modal-overlay" class="overlay" onclick="hideExport()"></div>
-    <div id="export-modal">
-        <h3 style="color:white; margin-top:0;">Export Settings</h3>
-        <label style="color:#aaa; font-size:12px;">Width (Pixels)</label><br>
-        <input type="number" id="expWidth" value="1920" style="width:100%; margin-bottom:10px; background:#000; color:#fff; border:1px solid #444; padding:5px;"><br>
+    <div id="toolbar" class="panel">
+        <span class="label-text">Color</span>
+        <input type="color" id="colorPicker" value="#44ffaa">
         
-        <label style="color:#aaa; font-size:12px;">Format</label><br>
-        <select id="expFormat" style="width: 100%; margin-bottom: 10px; height: 40px;">
-            <option value="image/png">PNG</option>
-            <option value="image/jpeg">JPEG</option>
+        <span class="label-text">Tool</span>
+        <select id="toolType">
+            <option value="pen">Pen</option>
+            <option value="brush">Brush</option>
+            <option value="pencil">Pencil</option>
+            <option value="eraser">Eraser</option>
         </select>
-
-        <label style="color:#aaa; font-size:12px;">Background</label><br>
-        <select id="expBG" style="width: 100%; margin-bottom: 10px; height: 40px;">
-            <option value="#0a0a0a">Black (Canvas)</option>
-            <option value="#ffffff">White</option>
-            <option value="transparent">Transparent (PNG only)</option>
-        </select>
-
-        <label style="color:#aaa; font-size:12px;">Quality (1-10)</label><br>
-        <input type="number" id="expQual" value="10" style="width:100%; margin-bottom:20px; background:#000; color:#fff; border:1px solid #444; padding:5px;">
         
-        <button onclick="performExport()" style="width:100%; background: var(--accent); height:auto;">Download Art</button>
+        <span class="label-text">Size</span>
+        <input type="range" id="sizePicker" min="1" max="200" value="15">
+
+        <span class="label-text">Flow</span>
+        <input type="range" id="opacityPicker" min="1" max="100" value="100">
+        
+        <button id="btn-draw" class="tool-active" onclick="setMode('draw')" title="Draw Mode">✎</button>
+        <button id="btn-pan" onclick="setMode('pan')" title="Adjust Mode">✥</button>
     </div>
+</div>
+
+<div id="export-modal-overlay" class="overlay" onclick="hideExport()"></div>
+<div id="export-modal">
+    <h3 style="color:white; margin-top:0;">Precision Export</h3>
+    <label class="label-text">Resolution Width (px)</label>
+    <input type="number" id="expWidth" value="3840" style="width:100%; margin-bottom:15px; background:#000; color:#fff; border:1px solid #444; padding:8px; border-radius:8px;">
+    
+    <label class="label-text">Format</label>
+    <select id="expFormat" style="width: 100%; margin-bottom: 15px; height: 45px;">
+        <option value="image/png">PNG (Lossless)</option>
+        <option value="image/jpeg">JPEG (Compressed)</option>
+    </select>
+
+    <label class="label-text">Background</label>
+    <select id="expBG" style="width: 100%; margin-bottom: 15px; height: 45px;">
+        <option value="#0a0a0a">Black</option>
+        <option value="#ffffff">White</option>
+        <option value="transparent">Transparent</option>
+    </select>
+    
+    <button onclick="performExport()" style="width:100%; background: var(--accent); height:auto; padding:15px; font-weight:bold; border-radius:12px;">Save to Device</button>
+</div>
 
 <script>
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d', { alpha: false }); 
+    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true }); 
     const zoomDisplay = document.getElementById('zoom-val');
     
-    // Application State
     let strokes = [];
     let currentStroke = null;
     let camera = { x: 0, y: 0, zoom: 1 };
     let mode = 'draw'; 
     let isDragging = false;
-    let lastMousePos = { x: 0, y: 0 };
-    
-    // Interaction State
-    let initialPinchDist = 0;
-    let initialPinchZoom = 1;
     let isPinching = false;
     let crosshairActive = false;
     let crosshairPos = { x: 0, y: 0 };
+    let crosshairOffset = { x: 0, y: 0 };
+    let initialPinchDist = 0;
+    let initialPinchZoom = 1;
     let lastTapTime = 0;
     let visualTouches = [];
 
@@ -240,34 +155,28 @@
     window.addEventListener('resize', resize);
     resize();
 
-    function getDist(t1, t2) {
-        return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
-    }
-
     function screenToWorld(sx, sy) {
         return { x: (sx - camera.x) / camera.zoom, y: (sy - camera.y) / camera.zoom };
     }
 
     function undo() { if (strokes.length > 0) strokes.pop(); }
 
-    function startNewStroke(x, y, pressure = 0.5) {
+    function startNewStroke(x, y) {
         const pos = screenToWorld(x, y);
         currentStroke = {
             color: document.getElementById('colorPicker').value,
             size: document.getElementById('sizePicker').value / camera.zoom,
             opacity: document.getElementById('opacityPicker').value / 100,
             type: document.getElementById('toolType').value,
-            points: [{...pos, p: pressure}]
+            points: [{...pos, p: 0.5}]
         };
         strokes.push(currentStroke);
-        if (strokes.length > 1000) strokes.shift(); // Extended history
+        if (strokes.length > 500) strokes.shift();
     }
 
-    // Touch Handling (Mainly for Multi-touch Crosshair and Zoom)
     canvas.addEventListener('touchstart', e => {
         if (mode === 'draw') {
             if (e.touches.length === 2) {
-                // Precision Crosshair Trigger
                 isPinching = true;
                 crosshairActive = true;
                 isDragging = false;
@@ -276,12 +185,10 @@
                 crosshairPos.x = (t1.clientX + t2.clientX) / 2;
                 crosshairPos.y = (t1.clientY + t2.clientY) / 2;
             } else if (e.touches.length === 1) {
-                // Normal Draw / Double Tap detection
                 const now = Date.now();
-                if (now - lastTapTime < 350) {
+                if (now - lastTapTime < 300) {
                     undo(); undo();
                     lastTapTime = 0;
-                    isDragging = false;
                     return;
                 }
                 lastTapTime = now;
@@ -289,39 +196,44 @@
                 startNewStroke(e.touches[0].clientX, e.touches[0].clientY);
                 addVisualTouch(e.touches[0].clientX, e.touches[0].clientY);
             }
-        } else if (mode === 'pan') {
+        } else {
             if (e.touches.length === 2) {
                 isPinching = true;
-                initialPinchDist = getDist(e.touches[0], e.touches[1]);
+                initialPinchDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
                 initialPinchZoom = camera.zoom;
             } else {
                 isDragging = true;
-                lastMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                crosshairPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             }
         }
     }, { passive: false });
 
     canvas.addEventListener('touchmove', e => {
+        e.preventDefault();
         if (mode === 'draw') {
             if (isPinching && e.touches.length === 2) {
-                const t1 = e.touches[0], t2 = e.touches[1];
-                crosshairPos.x = (t1.clientX + t2.clientX) / 2;
-                crosshairPos.y = (t1.clientY + t2.clientY) / 2;
-            } else if (isDragging && currentStroke && e.touches.length === 1) {
-                const pos = screenToWorld(e.touches[0].clientX, e.touches[0].clientY);
+                crosshairPos.x = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                crosshairPos.y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            } else if (isDragging && currentStroke) {
+                let x = e.touches[0].clientX;
+                let y = e.touches[0].clientY;
+                if (crosshairActive) {
+                    x -= crosshairOffset.x;
+                    y -= crosshairOffset.y;
+                }
+                const pos = screenToWorld(x, y);
                 currentStroke.points.push({...pos, p: 0.5});
             }
-        } else if (mode === 'pan') {
-            e.preventDefault();
+        } else {
             if (isPinching && e.touches.length === 2) {
-                const dist = getDist(e.touches[0], e.touches[1]);
-                const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-                applyZoom(initialPinchZoom * (dist / initialPinchDist) / camera.zoom, centerX, centerY);
+                const dist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
+                const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                applyZoom(initialPinchZoom * (dist / initialPinchDist) / camera.zoom, cx, cy);
             } else if (isDragging) {
-                camera.x += (e.touches[0].clientX - lastMousePos.x);
-                camera.y += (e.touches[0].clientY - lastMousePos.y);
-                lastMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                camera.x += (e.touches[0].clientX - crosshairPos.x);
+                camera.y += (e.touches[0].clientY - crosshairPos.y);
+                crosshairPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
             }
         }
     }, { passive: false });
@@ -329,14 +241,14 @@
     canvas.addEventListener('touchend', e => {
         if (mode === 'draw') {
             if (isPinching && e.touches.length === 1) {
-                // Transition from Crosshair positioning to active Draw
                 isPinching = false;
                 isDragging = true;
+                // RELATIVE LOCK: Calculate how far the remaining finger is from the crosshair
+                crosshairOffset.x = e.touches[0].clientX - crosshairPos.x;
+                crosshairOffset.y = e.touches[0].clientY - crosshairPos.y;
                 startNewStroke(crosshairPos.x, crosshairPos.y);
             } else if (e.touches.length === 0) {
-                isDragging = false;
-                crosshairActive = false;
-                currentStroke = null;
+                isDragging = false; crosshairActive = false; currentStroke = null;
             }
         } else {
             if (e.touches.length < 2) isPinching = false;
@@ -344,20 +256,12 @@
         }
     });
 
-    // Desktop support
-    canvas.addEventListener('wheel', e => {
-        if (mode === 'pan') {
-            e.preventDefault();
-            applyZoom(Math.pow(1.1, -e.deltaY / 150), e.clientX, e.clientY);
-        }
-    }, { passive: false });
-
-    function applyZoom(factor, centerX, centerY) {
-        const worldPos = screenToWorld(centerX, centerY);
+    function applyZoom(factor, cx, cy) {
+        const world = screenToWorld(cx, cy);
         camera.zoom *= factor;
         camera.zoom = Math.max(0.00001, Math.min(10000, camera.zoom));
-        camera.x = centerX - worldPos.x * camera.zoom;
-        camera.y = centerY - worldPos.y * camera.zoom;
+        camera.x = cx - world.x * camera.zoom;
+        camera.y = cy - world.y * camera.zoom;
         zoomDisplay.innerText = Math.round(camera.zoom * 100) + '%';
     }
 
@@ -365,42 +269,38 @@
         visualTouches.push({ x, y, radius: 20, alpha: 0.6, color: document.getElementById('colorPicker').value });
     }
 
-    function drawPaths(targetCtx, cam) {
-        strokes.forEach(stroke => {
-            if (!stroke.points.length) return;
-            targetCtx.save();
-            targetCtx.lineCap = 'round'; targetCtx.lineJoin = 'round';
-            
-            if (stroke.type === 'eraser') {
-                targetCtx.globalCompositeOperation = 'destination-out';
-                targetCtx.strokeStyle = 'white'; targetCtx.globalAlpha = 1;
+    function drawPaths(tCtx, cam) {
+        strokes.forEach(s => {
+            if (!s.points.length) return;
+            tCtx.save();
+            tCtx.lineCap = 'round'; tCtx.lineJoin = 'round';
+            if (s.type === 'eraser') {
+                tCtx.globalCompositeOperation = 'destination-out';
+                tCtx.strokeStyle = 'white'; tCtx.globalAlpha = 1;
             } else {
-                targetCtx.globalCompositeOperation = 'source-over';
-                targetCtx.strokeStyle = stroke.color; targetCtx.fillStyle = stroke.color;
-                targetCtx.globalAlpha = stroke.opacity;
+                tCtx.globalCompositeOperation = 'source-over';
+                tCtx.strokeStyle = s.color; tCtx.fillStyle = s.color;
+                tCtx.globalAlpha = s.opacity;
             }
-
-            if (stroke.type === 'brush') {
-                targetCtx.shadowBlur = (stroke.size * cam.zoom) / 3;
-                targetCtx.shadowColor = stroke.color;
-            } else if (stroke.type === 'pencil') {
-                targetCtx.setLineDash([1 / cam.zoom, 2 / cam.zoom]);
-                targetCtx.globalAlpha *= 0.6;
+            if (s.type === 'brush') {
+                tCtx.shadowBlur = (s.size * cam.zoom) / 3;
+                tCtx.shadowColor = s.color;
+            } else if (s.type === 'pencil') {
+                tCtx.setLineDash([1 / cam.zoom, 2 / cam.zoom]);
+                tCtx.globalAlpha *= 0.6;
             }
-
-            if (stroke.points.length === 1) {
-                const p = stroke.points[0];
-                targetCtx.beginPath();
-                targetCtx.arc(p.x, p.y, (stroke.size * (0.4 + p.p)) / 2, 0, Math.PI * 2);
-                targetCtx.fill();
+            if (s.points.length === 1) {
+                tCtx.beginPath();
+                tCtx.arc(s.points[0].x, s.points[0].y, s.size/2, 0, Math.PI*2);
+                tCtx.fill();
             } else {
-                targetCtx.beginPath();
-                targetCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
-                stroke.points.forEach(p => targetCtx.lineTo(p.x, p.y));
-                targetCtx.lineWidth = stroke.size;
-                targetCtx.stroke();
+                tCtx.beginPath();
+                tCtx.moveTo(s.points[0].x, s.points[0].y);
+                s.points.forEach(p => tCtx.lineTo(p.x, p.y));
+                tCtx.lineWidth = s.size;
+                tCtx.stroke();
             }
-            targetCtx.restore();
+            tCtx.restore();
         });
     }
 
@@ -408,19 +308,18 @@
         if (!crosshairActive) return;
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.strokeStyle = "rgba(0, 255, 100, 0.9)";
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = "#00ff66";
+        ctx.lineWidth = 2;
         ctx.beginPath();
-        ctx.moveTo(crosshairPos.x - 30, crosshairPos.y); ctx.lineTo(crosshairPos.x + 30, crosshairPos.y);
-        ctx.moveTo(crosshairPos.x, crosshairPos.y - 30); ctx.lineTo(crosshairPos.x, crosshairPos.y + 30);
+        ctx.moveTo(crosshairPos.x - 40, crosshairPos.y); ctx.lineTo(crosshairPos.x + 40, crosshairPos.y);
+        ctx.moveTo(crosshairPos.x, crosshairPos.y - 40); ctx.lineTo(crosshairPos.x, crosshairPos.y + 40);
         ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(crosshairPos.x, crosshairPos.y, 10, 0, Math.PI * 2);
-        ctx.stroke();
+        ctx.beginPath(); ctx.arc(crosshairPos.x, crosshairPos.y, 15, 0, Math.PI * 2); ctx.stroke();
         ctx.restore();
     }
 
     function renderLoop() {
+        // HARD WIPE: Prevents all Adjust Mode trails
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillStyle = '#0a0a0a';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -450,7 +349,7 @@
         document.getElementById('btn-pan').classList.toggle('tool-active', m === 'pan');
     }
 
-    function clearCanvas() { if(confirm("Wipe the blackboard?")) { strokes = []; camera = {x:0,y:0,zoom:1}; } }
+    function clearCanvas() { if(confirm("Clear Blackboard?")) { strokes = []; camera = {x:0,y:0,zoom:1}; } }
     function showExport() { document.getElementById('export-modal').style.display = 'block'; document.getElementById('export-modal-overlay').style.display = 'block'; }
     function hideExport() { document.getElementById('export-modal').style.display = 'none'; document.getElementById('export-modal-overlay').style.display = 'none'; }
 
@@ -463,21 +362,25 @@
         }));
         const pad = Math.max(maxX - minX, maxY - minY) * 0.05;
         minX -= pad; minY -= pad; maxX += pad; maxY += pad;
-        const width = parseInt(document.getElementById('expWidth').value) || 1920;
+        const width = parseInt(document.getElementById('expWidth').value) || 3840;
         const scale = width / (maxX - minX);
         const height = (maxY - minY) * scale;
         const out = document.createElement('canvas');
         out.width = width; out.height = height;
-        const octx = out.getContext('2d');
+        const octx = out.getContext('2d', {alpha: true});
         const bg = document.getElementById('expBG').value;
         if (bg !== 'transparent') { octx.fillStyle = bg; octx.fillRect(0,0,width,height); }
         octx.save(); octx.scale(scale, scale); octx.translate(-minX, -minY);
         drawPaths(octx, { zoom: scale });
         octx.restore();
         const link = document.createElement('a');
-        link.download = `visionary-art.png`;
+        link.download = `visionary-art-${Date.now()}.png`;
         link.href = out.toDataURL(document.getElementById('expFormat').value);
         link.click(); hideExport();
+    }
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
     }
 
     requestAnimationFrame(renderLoop);
