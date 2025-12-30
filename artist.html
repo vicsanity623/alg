@@ -216,7 +216,6 @@
     const ctx = canvas.getContext('2d', { alpha: false }); 
     const zoomDisplay = document.getElementById('zoom-val');
     
-    // Application State
     let strokes = [];
     let currentStroke = null;
     let camera = { x: 0, y: 0, zoom: 1 };
@@ -242,7 +241,6 @@
         return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
     }
 
-    // Input Handling
     canvas.addEventListener('pointerdown', e => {
         if (isPinching) return;
 
@@ -407,6 +405,7 @@
         });
     }
 
+    // Force a full clean clear every frame.
     function renderLoop() {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.fillStyle = '#0a0a0a';
@@ -433,6 +432,10 @@
 
     function setMode(m) {
         mode = m;
+        // Kill active drawing state immediately on mode switch
+        isDragging = false;
+        currentStroke = null;
+        
         document.getElementById('btn-draw').classList.toggle('tool-active', m === 'draw');
         document.getElementById('btn-pan').classList.toggle('tool-active', m === 'pan');
     }
@@ -452,7 +455,7 @@
 
     function hideExport() {
         document.getElementById('export-modal').style.display = 'none';
-        document.getElementById('export-modal-overlay').style.display = 'none';
+        document.getElementById('export-modal-overlay').style.none;
     }
 
     function performExport() {
@@ -460,8 +463,6 @@
             alert("Blackboard is empty!");
             return;
         }
-
-        // 1. Calculate the bounding box of ALL drawing content
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         strokes.forEach(s => {
             s.points.forEach(p => {
@@ -471,43 +472,30 @@
                 if (p.y > maxY) maxY = p.y;
             });
         });
-
-        // Add 5% padding around the bounds
         const padding = Math.max(maxX - minX, maxY - minY) * 0.05;
         minX -= padding; minY -= padding;
         maxX += padding; maxY += padding;
-
         const worldW = maxX - minX;
         const worldH = maxY - minY;
-
-        // 2. Setup the Export Canvas resolution
         const exportWidth = parseInt(document.getElementById('expWidth').value) || 1920;
         const scaleFactor = exportWidth / worldW;
         const exportHeight = worldH * scaleFactor;
-
         const format = document.getElementById('expFormat').value;
         const bgChoice = document.getElementById('expBG').value;
-
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = exportWidth;
         tempCanvas.height = exportHeight;
         const tCtx = tempCanvas.getContext('2d', { alpha: bgChoice === 'transparent' });
-
         if (bgChoice !== 'transparent') {
             tCtx.fillStyle = bgChoice;
             tCtx.fillRect(0, 0, exportWidth, exportHeight);
         }
-
-        // 3. Render the entire world-space bounding box into the high-res canvas
         tCtx.save();
         tCtx.scale(scaleFactor, scaleFactor);
         tCtx.translate(-minX, -minY);
-        
-        // Pass a virtual camera to ensure dash/glow styles scale correctly to the new res
         const exportCam = { zoom: scaleFactor };
         drawPaths(tCtx, exportCam);
         tCtx.restore();
-
         const link = document.createElement('a');
         link.download = `visionary-art-full-${Date.now()}.${format === 'image/jpeg' ? 'jpg' : 'png'}`;
         link.href = tempCanvas.toDataURL(format, document.getElementById('expQual').value / 10);
@@ -521,6 +509,7 @@
         });
     }
 
+    // Adjust mode refresh safety: ensures the canvas clears every frame regardless of input
     requestAnimationFrame(renderLoop);
 </script>
 </body>
