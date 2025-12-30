@@ -397,7 +397,40 @@ print("--- INITIALIZING TUNNEL ---")
         document.getElementById('userInput').addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
         });
+
+        // SERVICE WORKER REGISTRATION
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('SW Registered');
+                }).catch(err => {
+                    console.log('SW Registration Failed', err);
+                });
+            });
+        }
     </script>
+    
+    <style>
+        footer {
+            width: 100%;
+            padding: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(10, 10, 10, 0.5);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            color: #555;
+            font-size: 13px;
+        }
+        footer a {
+            color: #007AFF;
+            text-decoration: none;
+            margin: 0 10px;
+            font-weight: 500;
+        }
+    </style>
+
     <footer>
         <div>
             <a href="artist.html">Sketch Canvas</a>
