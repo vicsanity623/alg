@@ -26,7 +26,7 @@
 
         canvas {
             display: block;
-            touch-action: none;
+            touch-action: none; 
             background-color: #0a0a0a;
         }
 
@@ -88,7 +88,7 @@
             border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-            width: 44px;
+            width: 44px; 
             height: 44px;
             display: flex;
             align-items: center;
@@ -109,7 +109,7 @@
         }
 
         input[type="range"] {
-            writing-mode: bt-lr;
+            writing-mode: bt-lr; 
             -webkit-appearance: slider-vertical;
             width: 20px;
             height: 80px;
@@ -139,7 +139,7 @@
             z-index: 99;
             pointer-events: auto;
         }
-
+        
         .label-text {
             display: block;
             font-size: 10px;
@@ -151,84 +151,87 @@
 </head>
 <body>
 
-<canvas id="canvas"></canvas>
+    <canvas id="canvas"></canvas>
 
-<div id="ui-layer">
-    <div id="status-bar" class="panel">
-        Zoom: <span id="zoom-val">100%</span>
+    <div id="ui-layer">
+        <div id="status-bar" class="panel">
+            Zoom: <span id="zoom-val">100%</span>
+        </div>
+
+        <div id="export-panel" class="panel">
+            <button onclick="showExport()" style="width: auto;">Export</button>
+            <button onclick="clearCanvas()" style="color: #ff4444; width: auto;">Clear</button>
+        </div>
+
+        <div id="toolbar" class="panel">
+            <span class="label-text">Color</span>
+            <input type="color" id="colorPicker" value="#44ffaa">
+            
+            <span class="label-text">Tool</span>
+            <select id="toolType">
+                <option value="pen">Pen</option>
+                <option value="brush">Brush</option>
+                <option value="pencil">Pencil</option>
+                <option value="eraser">Eraser</option>
+            </select>
+            
+            <span class="label-text">Size</span>
+            <input type="range" id="sizePicker" min="1" max="150" value="10">
+
+            <span class="label-text">Flow</span>
+            <input type="range" id="opacityPicker" min="1" max="100" value="100">
+            
+            <button id="btn-draw" class="tool-active" onclick="setMode('draw')" title="Draw Mode">✎</button>
+            <button id="btn-pan" onclick="setMode('pan')" title="Adjust Mode">✥</button>
+        </div>
     </div>
 
-    <div id="export-panel" class="panel">
-        <button onclick="showExport()" style="width: auto;">Export</button>
-        <button onclick="clearCanvas()" style="color: #ff4444; width: auto;">Clear</button>
-    </div>
-
-    <div id="toolbar" class="panel">
-        <span class="label-text">Color</span>
-        <input type="color" id="colorPicker" value="#44ffaa">
-
-        <span class="label-text">Tool</span>
-        <select id="toolType">
-            <option value="pen">Pen</option>
-            <option value="brush">Brush</option>
-            <option value="pencil">Pencil</option>
-            <option value="eraser">Eraser</option>
+    <div id="export-modal-overlay" class="overlay" onclick="hideExport()"></div>
+    <div id="export-modal">
+        <h3 style="color:white; margin-top:0;">Export Settings</h3>
+        <label style="color:#aaa; font-size:12px;">Width (Pixels)</label><br>
+        <input type="number" id="expWidth" value="1920" style="width:100%; margin-bottom:10px; background:#000; color:#fff; border:1px solid #444; padding:5px;"><br>
+        
+        <label style="color:#aaa; font-size:12px;">Format</label><br>
+        <select id="expFormat" style="width: 100%; margin-bottom: 10px; height: 40px;">
+            <option value="image/png">PNG</option>
+            <option value="image/jpeg">JPEG</option>
         </select>
 
-        <span class="label-text">Size</span>
-        <input type="range" id="sizePicker" min="1" max="150" value="10">
+        <label style="color:#aaa; font-size:12px;">Background</label><br>
+        <select id="expBG" style="width: 100%; margin-bottom: 10px; height: 40px;">
+            <option value="#0a0a0a">Black (Canvas)</option>
+            <option value="#ffffff">White</option>
+            <option value="transparent">Transparent (PNG only)</option>
+        </select>
 
-        <span class="label-text">Flow</span>
-        <input type="range" id="opacityPicker" min="1" max="100" value="100">
-
-        <button id="btn-draw" class="tool-active" onclick="setMode('draw')">✎</button>
-        <button id="btn-pan" onclick="setMode('pan')">✥</button>
+        <label style="color:#aaa; font-size:12px;">Quality (1-10)</label><br>
+        <input type="number" id="expQual" value="10" style="width:100%; margin-bottom:20px; background:#000; color:#fff; border:1px solid #444; padding:5px;">
+        
+        <button onclick="performExport()" style="width:100%; background: var(--accent); height:auto;">Download Art</button>
     </div>
-</div>
-
-<div id="export-modal-overlay" class="overlay" onclick="hideExport()"></div>
-<div id="export-modal">
-    <h3 style="color:white; margin-top:0;">Export Settings</h3>
-    <label style="color:#aaa; font-size:12px;">Width (Pixels)</label><br>
-    <input type="number" id="expWidth" value="1920" style="width:100%; margin-bottom:10px; background:#000; color:#fff; border:1px solid #444; padding:5px;"><br>
-
-    <label style="color:#aaa; font-size:12px;">Format</label><br>
-    <select id="expFormat" style="width: 100%; margin-bottom: 10px; height: 40px;">
-        <option value="image/png">PNG</option>
-        <option value="image/jpeg">JPEG</option>
-    </select>
-
-    <label style="color:#aaa; font-size:12px;">Background</label><br>
-    <select id="expBG" style="width: 100%; margin-bottom: 10px; height: 40px;">
-        <option value="#0a0a0a">Black (Canvas)</option>
-        <option value="#ffffff">White</option>
-        <option value="transparent">Transparent (PNG only)</option>
-    </select>
-
-    <label style="color:#aaa; font-size:12px;">Quality (1-10)</label><br>
-    <input type="number" id="expQual" value="10" style="width:100%; margin-bottom:20px; background:#000; color:#fff; border:1px solid #444; padding:5px;">
-
-    <button onclick="performExport()" style="width:100%; background: var(--accent); height:auto;">Download Art</button>
-</div>
 
 <script>
     const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d', { alpha: false });
+    const ctx = canvas.getContext('2d', { alpha: false }); 
     const zoomDisplay = document.getElementById('zoom-val');
-
+    
+    // Application State
     let strokes = [];
     let currentStroke = null;
     let camera = { x: 0, y: 0, zoom: 1 };
-    let mode = 'draw';
+    let mode = 'draw'; 
     let isDragging = false;
     let lastMousePos = { x: 0, y: 0 };
-
+    
+    // Interaction State
     let initialPinchDist = 0;
     let initialPinchZoom = 1;
     let isPinching = false;
-
-    let visualTouches = [];
+    let crosshairActive = false;
+    let crosshairPos = { x: 0, y: 0 };
     let lastTapTime = 0;
+    let visualTouches = [];
 
     function resize() {
         canvas.width = window.innerWidth;
@@ -237,164 +240,184 @@
     window.addEventListener('resize', resize);
     resize();
 
-    function cancelInteraction() {
-        isDragging = false;
-        isPinching = false;
-        currentStroke = null;
-    }
-
     function getDist(t1, t2) {
         return Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
     }
 
-    canvas.addEventListener('pointerdown', e => {
-        canvas.setPointerCapture(e.pointerId);
-
-        if (isPinching) return;
-
-        if (mode === 'draw') {
-            const now = Date.now();
-            if (now - lastTapTime < 350) {
-                undo();
-                lastTapTime = 0;
-                cancelInteraction();
-                return;
-            }
-
-            lastTapTime = now;
-            isDragging = true;
-
-            const pos = screenToWorld(e.clientX, e.clientY);
-            currentStroke = {
-                color: document.getElementById('colorPicker').value,
-                size: document.getElementById('sizePicker').value / camera.zoom,
-                opacity: document.getElementById('opacityPicker').value / 100,
-                type: document.getElementById('toolType').value,
-                points: [{ ...pos, p: e.pressure || 0.5 }]
-            };
-            strokes.push(currentStroke);
-        } else {
-            isDragging = true;
-            lastMousePos = { x: e.clientX, y: e.clientY };
-        }
-    });
-
-    canvas.addEventListener('pointermove', e => {
-        if (!isDragging || isPinching) return;
-
-        if (mode === 'pan') {
-            const dx = e.clientX - lastMousePos.x;
-            const dy = e.clientY - lastMousePos.y;
-            camera.x += dx;
-            camera.y += dy;
-            lastMousePos = { x: e.clientX, y: e.clientY };
-        } else if (mode === 'draw' && currentStroke) {
-            const pos = screenToWorld(e.clientX, e.clientY);
-            currentStroke.points.push({ ...pos, p: e.pressure || 0.5 });
-        }
-    });
-
-    function endInteraction() {
-        isDragging = false;
-        currentStroke = null;
+    function screenToWorld(sx, sy) {
+        return { x: (sx - camera.x) / camera.zoom, y: (sy - camera.y) / camera.zoom };
     }
 
-    canvas.addEventListener('pointerup', endInteraction);
-    canvas.addEventListener('pointercancel', endInteraction);
-    canvas.addEventListener('pointerleave', endInteraction);
-    window.addEventListener('blur', endInteraction);
+    function undo() { if (strokes.length > 0) strokes.pop(); }
 
+    function startNewStroke(x, y, pressure = 0.5) {
+        const pos = screenToWorld(x, y);
+        currentStroke = {
+            color: document.getElementById('colorPicker').value,
+            size: document.getElementById('sizePicker').value / camera.zoom,
+            opacity: document.getElementById('opacityPicker').value / 100,
+            type: document.getElementById('toolType').value,
+            points: [{...pos, p: pressure}]
+        };
+        strokes.push(currentStroke);
+        if (strokes.length > 1000) strokes.shift(); // Extended history
+    }
+
+    // Touch Handling (Mainly for Multi-touch Crosshair and Zoom)
     canvas.addEventListener('touchstart', e => {
-        if (e.touches.length === 2) {
-            isPinching = true;
-            cancelInteraction();
-            initialPinchDist = getDist(e.touches[0], e.touches[1]);
-            initialPinchZoom = camera.zoom;
+        if (mode === 'draw') {
+            if (e.touches.length === 2) {
+                // Precision Crosshair Trigger
+                isPinching = true;
+                crosshairActive = true;
+                isDragging = false;
+                currentStroke = null;
+                const t1 = e.touches[0], t2 = e.touches[1];
+                crosshairPos.x = (t1.clientX + t2.clientX) / 2;
+                crosshairPos.y = (t1.clientY + t2.clientY) / 2;
+            } else if (e.touches.length === 1) {
+                // Normal Draw / Double Tap detection
+                const now = Date.now();
+                if (now - lastTapTime < 350) {
+                    undo(); undo();
+                    lastTapTime = 0;
+                    isDragging = false;
+                    return;
+                }
+                lastTapTime = now;
+                isDragging = true;
+                startNewStroke(e.touches[0].clientX, e.touches[0].clientY);
+                addVisualTouch(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        } else if (mode === 'pan') {
+            if (e.touches.length === 2) {
+                isPinching = true;
+                initialPinchDist = getDist(e.touches[0], e.touches[1]);
+                initialPinchZoom = camera.zoom;
+            } else {
+                isDragging = true;
+                lastMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
         }
     }, { passive: false });
 
     canvas.addEventListener('touchmove', e => {
-        if (mode === 'pan' && e.touches.length === 2) {
+        if (mode === 'draw') {
+            if (isPinching && e.touches.length === 2) {
+                const t1 = e.touches[0], t2 = e.touches[1];
+                crosshairPos.x = (t1.clientX + t2.clientX) / 2;
+                crosshairPos.y = (t1.clientY + t2.clientY) / 2;
+            } else if (isDragging && currentStroke && e.touches.length === 1) {
+                const pos = screenToWorld(e.touches[0].clientX, e.touches[0].clientY);
+                currentStroke.points.push({...pos, p: 0.5});
+            }
+        } else if (mode === 'pan') {
             e.preventDefault();
-    
-            const currentDist = getDist(e.touches[0], e.touches[1]);
-            const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-            const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-    
-            const rawFactor = currentDist / initialPinchDist;
-            const factor = 1 + (rawFactor - 1) * 0.25; // ← slow zoom
-    
-            applyZoom(factor, centerX, centerY);
+            if (isPinching && e.touches.length === 2) {
+                const dist = getDist(e.touches[0], e.touches[1]);
+                const centerX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+                const centerY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                applyZoom(initialPinchZoom * (dist / initialPinchDist) / camera.zoom, centerX, centerY);
+            } else if (isDragging) {
+                camera.x += (e.touches[0].clientX - lastMousePos.x);
+                camera.y += (e.touches[0].clientY - lastMousePos.y);
+                lastMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            }
         }
     }, { passive: false });
 
     canvas.addEventListener('touchend', e => {
-        if (e.touches.length < 2) {
-            isPinching = false;
-            cancelInteraction();
+        if (mode === 'draw') {
+            if (isPinching && e.touches.length === 1) {
+                // Transition from Crosshair positioning to active Draw
+                isPinching = false;
+                isDragging = true;
+                startNewStroke(crosshairPos.x, crosshairPos.y);
+            } else if (e.touches.length === 0) {
+                isDragging = false;
+                crosshairActive = false;
+                currentStroke = null;
+            }
+        } else {
+            if (e.touches.length < 2) isPinching = false;
+            if (e.touches.length === 0) isDragging = false;
         }
     });
 
+    // Desktop support
     canvas.addEventListener('wheel', e => {
         if (mode === 'pan') {
             e.preventDefault();
-            const factor = Math.pow(1.1, -e.deltaY / 150);
-            applyZoom(factor, e.clientX, e.clientY);
+            applyZoom(Math.pow(1.1, -e.deltaY / 150), e.clientX, e.clientY);
         }
     }, { passive: false });
 
-    function applyZoom(factor, cx, cy) {
-        const world = screenToWorld(cx, cy);
+    function applyZoom(factor, centerX, centerY) {
+        const worldPos = screenToWorld(centerX, centerY);
         camera.zoom *= factor;
         camera.zoom = Math.max(0.00001, Math.min(10000, camera.zoom));
-        camera.x = cx - world.x * camera.zoom;
-        camera.y = cy - world.y * camera.zoom;
+        camera.x = centerX - worldPos.x * camera.zoom;
+        camera.y = centerY - worldPos.y * camera.zoom;
         zoomDisplay.innerText = Math.round(camera.zoom * 100) + '%';
-    }
-
-    function screenToWorld(x, y) {
-        return { x: (x - camera.x) / camera.zoom, y: (y - camera.y) / camera.zoom };
     }
 
     function addVisualTouch(x, y) {
         visualTouches.push({ x, y, radius: 20, alpha: 0.6, color: document.getElementById('colorPicker').value });
     }
 
-    function undo() {
-        if (strokes.length) strokes.pop();
-    }
-
-    function drawPaths(targetCtx, currentCam) {
+    function drawPaths(targetCtx, cam) {
         strokes.forEach(stroke => {
             if (!stroke.points.length) return;
-
             targetCtx.save();
-            targetCtx.lineCap = 'round';
-            targetCtx.lineJoin = 'round';
-
+            targetCtx.lineCap = 'round'; targetCtx.lineJoin = 'round';
+            
             if (stroke.type === 'eraser') {
                 targetCtx.globalCompositeOperation = 'destination-out';
-                targetCtx.globalAlpha = 1;
+                targetCtx.strokeStyle = 'white'; targetCtx.globalAlpha = 1;
             } else {
                 targetCtx.globalCompositeOperation = 'source-over';
-                targetCtx.strokeStyle = stroke.color;
+                targetCtx.strokeStyle = stroke.color; targetCtx.fillStyle = stroke.color;
                 targetCtx.globalAlpha = stroke.opacity;
             }
 
             if (stroke.type === 'brush') {
-                targetCtx.shadowBlur = (stroke.size * currentCam.zoom) / 3;
+                targetCtx.shadowBlur = (stroke.size * cam.zoom) / 3;
                 targetCtx.shadowColor = stroke.color;
+            } else if (stroke.type === 'pencil') {
+                targetCtx.setLineDash([1 / cam.zoom, 2 / cam.zoom]);
+                targetCtx.globalAlpha *= 0.6;
             }
 
-            targetCtx.beginPath();
-            stroke.points.forEach((p, i) => {
-                if (i === 0) targetCtx.moveTo(p.x, p.y);
-                else targetCtx.lineTo(p.x, p.y);
-            });
-            targetCtx.lineWidth = stroke.size;
-            targetCtx.stroke();
+            if (stroke.points.length === 1) {
+                const p = stroke.points[0];
+                targetCtx.beginPath();
+                targetCtx.arc(p.x, p.y, (stroke.size * (0.4 + p.p)) / 2, 0, Math.PI * 2);
+                targetCtx.fill();
+            } else {
+                targetCtx.beginPath();
+                targetCtx.moveTo(stroke.points[0].x, stroke.points[0].y);
+                stroke.points.forEach(p => targetCtx.lineTo(p.x, p.y));
+                targetCtx.lineWidth = stroke.size;
+                targetCtx.stroke();
+            }
             targetCtx.restore();
         });
+    }
+
+    function drawCrosshair() {
+        if (!crosshairActive) return;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.strokeStyle = "rgba(0, 255, 100, 0.9)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(crosshairPos.x - 30, crosshairPos.y); ctx.lineTo(crosshairPos.x + 30, crosshairPos.y);
+        ctx.moveTo(crosshairPos.x, crosshairPos.y - 30); ctx.lineTo(crosshairPos.x, crosshairPos.y + 30);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(crosshairPos.x, crosshairPos.y, 10, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
     }
 
     function renderLoop() {
@@ -408,69 +431,53 @@
         drawPaths(ctx, camera);
         ctx.restore();
 
+        drawCrosshair();
+
+        visualTouches.forEach((t, i) => {
+            ctx.beginPath(); ctx.fillStyle = t.color; ctx.globalAlpha = t.alpha;
+            ctx.arc(t.x, t.y, t.radius, 0, Math.PI * 2); ctx.fill();
+            t.alpha -= 0.05; t.radius += 1;
+            if (t.alpha <= 0) visualTouches.splice(i, 1);
+        });
+
         requestAnimationFrame(renderLoop);
     }
 
     function setMode(m) {
         mode = m;
-        cancelInteraction();
+        isDragging = false; crosshairActive = false; currentStroke = null;
         document.getElementById('btn-draw').classList.toggle('tool-active', m === 'draw');
         document.getElementById('btn-pan').classList.toggle('tool-active', m === 'pan');
     }
 
-    function clearCanvas() {
-        if (confirm("Wipe the blackboard?")) {
-            strokes = [];
-            camera = { x: 0, y: 0, zoom: 1 };
-            zoomDisplay.innerText = '100%';
-        }
-    }
-
-    function showExport() {
-        document.getElementById('export-modal').style.display = 'block';
-        document.getElementById('export-modal-overlay').style.display = 'block';
-    }
-
-    function hideExport() {
-        document.getElementById('export-modal').style.display = 'none';
-        document.getElementById('export-modal-overlay').style.display = 'none';
-    }
+    function clearCanvas() { if(confirm("Wipe the blackboard?")) { strokes = []; camera = {x:0,y:0,zoom:1}; } }
+    function showExport() { document.getElementById('export-modal').style.display = 'block'; document.getElementById('export-modal-overlay').style.display = 'block'; }
+    function hideExport() { document.getElementById('export-modal').style.display = 'none'; document.getElementById('export-modal-overlay').style.display = 'none'; }
 
     function performExport() {
-        if (strokes.length === 0) {
-            alert("Blackboard is empty!");
-            return;
-        }
-
+        if (!strokes.length) return;
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         strokes.forEach(s => s.points.forEach(p => {
-            minX = Math.min(minX, p.x);
-            minY = Math.min(minY, p.y);
-            maxX = Math.max(maxX, p.x);
-            maxY = Math.max(maxY, p.y);
+            minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
+            maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
         }));
-
-        const padding = Math.max(maxX - minX, maxY - minY) * 0.05;
-        minX -= padding; minY -= padding;
-        maxX += padding; maxY += padding;
-
-        const exportW = parseInt(document.getElementById('expWidth').value);
-        const scale = exportW / (maxX - minX);
-        const exportH = (maxY - minY) * scale;
-
+        const pad = Math.max(maxX - minX, maxY - minY) * 0.05;
+        minX -= pad; minY -= pad; maxX += pad; maxY += pad;
+        const width = parseInt(document.getElementById('expWidth').value) || 1920;
+        const scale = width / (maxX - minX);
+        const height = (maxY - minY) * scale;
         const out = document.createElement('canvas');
-        out.width = exportW;
-        out.height = exportH;
-
+        out.width = width; out.height = height;
         const octx = out.getContext('2d');
-        octx.scale(scale, scale);
-        octx.translate(-minX, -minY);
+        const bg = document.getElementById('expBG').value;
+        if (bg !== 'transparent') { octx.fillStyle = bg; octx.fillRect(0,0,width,height); }
+        octx.save(); octx.scale(scale, scale); octx.translate(-minX, -minY);
         drawPaths(octx, { zoom: scale });
-
+        octx.restore();
         const link = document.createElement('a');
-        link.download = 'visionary-art.png';
-        link.href = out.toDataURL();
-        link.click();
+        link.download = `visionary-art.png`;
+        link.href = out.toDataURL(document.getElementById('expFormat').value);
+        link.click(); hideExport();
     }
 
     requestAnimationFrame(renderLoop);
