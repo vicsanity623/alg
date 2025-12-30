@@ -1,8 +1,24 @@
 {
-  "name": "Gemma AI",
-  "short_name": "Gemma",
+  "name": "Visionary Suite",
+  "short_name": "Visionary",
+  "description": "AI Chat and Infinite Canvas Workspace",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#000000",
-  "theme_color": "#000000"
+  "theme_color": "#000000",
+  "scope": "./",
+  "shortcuts": [
+    {
+      "name": "Open Sketch Canvas",
+      "short_name": "Sketch",
+      "description": "Jump straight to the drawing tool",
+      "url": "./artist.html",
+    },
+    {
+      "name": "Open AI Chat",
+      "short_name": "Chat",
+      "description": "Jump straight to Gemma AI",
+      "url": "./index.html",
+    }
+  ]
 }
