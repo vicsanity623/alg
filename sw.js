@@ -1,17 +1,19 @@
-const GAME_VERSION = 'v4.5';
+const GAME_VERSION = 'v4.6'; // Incremented version
 const CACHE_NAME = `AIC-${GAME_VERSION}`;
 
+// Added manifest.json to the assets list
 const ASSETS = [
     './',
     './index.html',
     './artist.html',
-    './gallery.js'
+    './gallery.js',
+    './manifest.json' 
 ];
 
 // 1. INSTALL: Cache files and force activation
 self.addEventListener('install', (e) => {
     console.log(`[SW] Installing ${GAME_VERSION}`);
-    self.skipWaiting(); // FORCE the new service worker to install immediately
+    self.skipWaiting(); 
     e.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.addAll(ASSETS);
@@ -34,16 +36,28 @@ self.addEventListener('activate', (e) => {
             );
         })
     );
-    return self.clients.claim(); // Take control of the page immediately
+    return self.clients.claim(); 
 });
 
-// 3. FETCH: Network First, Fallback to Cache
-// This fixes the "must delete app to update" bug.
+// 3. FETCH: Network First, then Update Cache, Fallback to Cache
+// This ensures the user ALWAYS has the latest version when online,
+// but the offline version stays updated too.
 self.addEventListener('fetch', (e) => {
     e.respondWith(
         fetch(e.request)
             .then((response) => {
-                // If we got a valid response from the network, return it
+                // Check if we received a valid response
+                if (!response || response.status !== 200 || response.type !== 'basic') {
+                    return response;
+                }
+
+                // IMPORTANT: Clone the response and update the cache 
+                // so the "Offline" version is always the latest one seen.
+                const responseToCache = response.clone();
+                caches.open(CACHE_NAME).then((cache) => {
+                    cache.put(e.request, responseToCache);
+                });
+
                 return response;
             })
             .catch(() => {
