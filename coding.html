@@ -188,18 +188,27 @@
                 title: "HTML Foundation",
                 difficulty: "Beginner",
                 explanation: `
-                    <h1>Understanding HTML</h1>
-                    <p>HTML (HyperText Markup Language) is the <b>skeleton</b> of every website. It doesn't handle colors or logic; it just defines what the content is.</p>
-                    <h3>The Anatomy of a Tag</h3>
-                    <p>Most HTML elements have an opening tag, content, and a closing tag.</p>
-                    <div class="example-box">&lt;h1&gt;This is a big title&lt;/h1&gt;</div>
-                    <h3>Key Elements:</h3>
+                    <h1>1. HTML: The Global Structure</h1>
+                    <p>HTML is a <b>Markup Language</b>. It uses "Tags" to tell the browser what a piece of content is (a heading, a button, a list).</p>
+                    
+                    <h3>10 Essential Concepts:</h3>
                     <ul>
-                        <li><b>&lt;h1&gt; to &lt;h6&gt;:</b> Headings (1 is the biggest).</li>
-                        <li><b>&lt;p&gt;:</b> Paragraphs for blocks of text.</li>
-                        <li><b>&lt;a&gt;:</b> Links (Anchors). Requires an 'href' attribute to know where to go.</li>
-                        <li><b>&lt;img&gt;:</b> Images. Does not have a closing tag.</li>
+                        <li><b>The Anatomy:</b> A tag usually looks like this: <code>&lt;tag&gt;Content&lt;/tag&gt;</code>.</li>
+                        <li><b>Headings:</b> <code>&lt;h1&gt;</code> is the most important title. <code>&lt;h2&gt;</code> through <code>&lt;h6&gt;</code> are sub-titles.</li>
+                        <li><b>Paragraphs:</b> Use <code>&lt;p&gt;</code> for any standard block of text.</li>
+                        <li><b>Links:</b> Use <code>&lt;a href="URL"&gt;</code>. The 'href' (Hypertext Reference) is the destination.</li>
+                        <li><b>Images:</b> Use <code>&lt;img src="path"&gt;</code>. Note: This tag is "self-closing" (no ending tag).</li>
+                        <li><b>Lists (Unordered):</b> <code>&lt;ul&gt;</code> creates bullet points; <code>&lt;li&gt;</code> defines items inside.</li>
+                        <li><b>Lists (Ordered):</b> <code>&lt;ol&gt;</code> creates numbered lists.</li>
+                        <li><b>Buttons:</b> <code>&lt;button&gt;</code> creates a clickable element.</li>
+                        <li><b>Divisions:</b> <code>&lt;div&gt;</code> is an invisible box used to group other elements together.</li>
+                        <li><b>Attributes:</b> Extra info inside a tag, like <code>class="name"</code> or <code>id="unique"</code>.</li>
                     </ul>
+        
+                    <div class="example-box">
+                        &lt;!-- Example of a proper link --&gt;<br>
+                        &lt;a href="https://google.com"&gt;Go to Google&lt;/a&gt;
+                    </div>
                 `,
                 question: "Which tag is used specifically for the main, most important heading of a page?",
                 type: "choice",
@@ -211,22 +220,32 @@
                 title: "CSS Presentation",
                 difficulty: "Beginner",
                 explanation: `
-                    <h1>The Art of CSS</h1>
-                    <p>If HTML is the skeleton, CSS (Cascading Style Sheets) is the <b>clothing and skin</b>. It handles colors, spacing, and layout.</p>
-                    <h3>The Box Model</h3>
-                    <p>This is the most important concept in CSS. Every HTML element is treated as a box consisting of:</p>
-                    <ul>
-                        <li><b>Content:</b> The text or image itself.</li>
-                        <li><b>Padding:</b> Transparent space <i>inside</i> the border.</li>
-                        <li><b>Border:</b> The line around the padding.</li>
-                        <li><b>Margin:</b> Transparent space <i>outside</i> the border.</li>
-                    </ul>
+                    <h1>2. CSS: The Visual Grammar</h1>
+                    <p>CSS is all about targeting an HTML element and applying a visual rule to it.</p>
+                    
+                    <h3>The Rule Formula:</h3>
                     <div class="example-box">
-p {<br>
-&nbsp;&nbsp;color: blue;<br>
-&nbsp;&nbsp;margin: 20px;<br>
-&nbsp;&nbsp;padding: 10px;<br>
-}</div>
+                        selector { <br>
+                        &nbsp;&nbsp;property: value;<br>
+                        }
+                    </div>
+        
+                    <h3>10 Essential Concepts:</h3>
+                    <ul>
+                        <li><b>Selectors:</b> The name of the HTML tag you want to style (e.g., <code>p</code>, <code>h1</code>, <code>button</code>).</li>
+                        <li><b>Declaration Block:</b> Everything inside the <code>{ }</code> curly braces.</li>
+                        <li><b>Properties:</b> The specific attribute you want to change (e.g., <code>color</code>, <code>font-size</code>).</li>
+                        <li><b>Values:</b> The setting you apply (e.g., <code>red</code>, <code>20px</code>).</li>
+                        <li><b>The Semicolon:</b> Every line inside the braces <b>must</b> end with a <code>;</code> or the code breaks.</li>
+                        <li><b>Colors:</b> Use <code>color: blue;</code> for text and <code>background-color: black;</code> for boxes.</li>
+                        <li><b>Font Size:</b> Controlled by <code>font-size: 16px;</code>.</li>
+                        <li><b>Margin:</b> Space <b>outside</b> the element's border.</li>
+                        <li><b>Padding:</b> Space <b>inside</b> the element, between content and border.</li>
+                        <li><b>Border:</b> The physical line around the box: <code>border: 1px solid black;</code>.</li>
+                    </ul>
+        
+                    <h3>How-To (The "Color" Rule):</h3>
+                    <p>To turn paragraphs red, the selector is <b>p</b>, the property is <b>color</b>, and the value is <b>red</b>.</p>
                 `,
                 question: "Write the CSS selector that would change the color of all <p> tags to 'red'.",
                 type: "code",
@@ -237,20 +256,26 @@ p {<br>
                 title: "JavaScript Logic",
                 difficulty: "Beginner",
                 explanation: `
-                    <h1>JavaScript: The Brain</h1>
-                    <p>JavaScript makes things <b>interactive</b>. It handles clicking, calculations, and data.</p>
-                    <h3>Variables</h3>
-                    <p>Think of a variable as a labeled box that stores a value.</p>
+                    <h1>3. JavaScript: The Action</h1>
+                    <p>JavaScript is the programming language that lets your website "think."</p>
+        
+                    <h3>10 Essential Concepts:</h3>
+                    <ul>
+                        <li><b>Variables (let):</b> A box for data that <b>can</b> change later.</li>
+                        <li><b>Variables (const):</b> Short for "Constant." A box for data that <b>never</b> changes.</li>
+                        <li><b>Strings:</b> Text data wrapped in quotes: <code>"Hello World"</code>.</li>
+                        <li><b>Numbers:</b> Math data (no quotes): <code>42</code>.</li>
+                        <li><b>Booleans:</b> Simple <code>true</code> or <code>false</code> values.</li>
+                        <li><b>Functions:</b> A saved "recipe" of code: <code>function name() { ... }</code>.</li>
+                        <li><b>Calling a Function:</b> To run the recipe, use: <code>name();</code>.</li>
+                        <li><b>Alerts:</b> A popup box: <code>alert("Hi!");</code>.</li>
+                        <li><b>Console Log:</b> Sending messages to the developer tool: <code>console.log("Debug");</code>.</li>
+                        <li><b>Comments:</b> Use <code>//</code> to write notes the computer ignores.</li>
+                    </ul>
+        
                     <div class="example-box">
-                        let name = "Alex";<br>
-                        const pi = 3.14; // Const means it cannot change
-                    </div>
-                    <h3>Functions</h3>
-                    <p>A function is a reusable set of instructions.</p>
-                    <div class="example-box">
-                        function sayHi() {<br>
-                        &nbsp;&nbsp;alert("Hello!");<br>
-                        }
+                        const price = 100; // This value is locked<br>
+                        let score = 0; // This value can be updated
                     </div>
                 `,
                 question: "What keyword is used to declare a variable that is constant and cannot be changed later?",
@@ -263,14 +288,25 @@ p {<br>
                 title: "The DOM",
                 difficulty: "Intermediate",
                 explanation: `
-                    <h1>Document Object Model</h1>
-                    <p>The DOM is how JavaScript "talks" to your HTML. It allows JS to change text, colors, or remove elements on the fly.</p>
-                    <div class="example-box">
-                        // Finding an element by its ID<br>
-                        const title = document.getElementById('main-title');<br><br>
-                        // Changing its text<br>
-                        title.innerText = "New Title!";
-                    </div>
+                    <h1>4. The DOM: The Bridge</h1>
+                    <p>The DOM (Document Object Model) is how your JavaScript finds and edits your HTML.</p>
+        
+                    <h3>10 Essential Concepts:</h3>
+                    <ul>
+                        <li><b>Selecting by ID:</b> <code>document.getElementById('id-name')</code> finds one specific thing.</li>
+                        <li><b>Query Selector:</b> <code>document.querySelector('.class')</code> finds things using CSS style names.</li>
+                        <li><b>Changing Text:</b> Use <code>.innerText = "New Text"</code> to swap words.</li>
+                        <li><b>Changing Style:</b> Use <code>.style.color = "blue"</code> to change CSS via JS.</li>
+                        <li><b>Event Listeners:</b> Waiting for a user to do something: <code>.addEventListener('click', ...)</code>.</li>
+                        <li><b>Click Events:</b> The most common event for buttons.</li>
+                        <li><b>Input Values:</b> Getting what a user typed: <code>element.value</code>.</li>
+                        <li><b>Classes:</b> Adding a CSS class via JS: <code>.classList.add('hidden')</code>.</li>
+                        <li><b>Creating Elements:</b> Making new HTML on the fly: <code>document.createElement('div')</code>.</li>
+                        <li><b>Appending:</b> Putting a new element into the page: <code>document.body.appendChild(el)</code>.</li>
+                    </ul>
+        
+                    <h3>How-To: Finding an element</h3>
+                    <p>If your HTML is <code>&lt;button id="submit"&gt;</code>, your JS finds it using the <b>ID</b> inside quotes.</p>
                 `,
                 question: "Write the JavaScript command to find an element with the ID 'btn'.",
                 type: "code",
@@ -281,21 +317,33 @@ p {<br>
                 title: "Version Control (Git)",
                 difficulty: "Intermediate",
                 explanation: `
-                    <h1>Working with Git</h1>
-                    <p>Git is a "Time Machine" for your code. It tracks every change you make so you can go back if you break something.</p>
+                    <h1>5. Git: The Save System</h1>
+                    <p>Git tracks changes in your project files so you can undo mistakes or collaborate with others.</p>
+        
+                    <h3>10 Essential Concepts:</h3>
                     <ul>
-                        <li><b>git init:</b> Create a new repository.</li>
-                        <li><b>git add:</b> Stage changes to be saved.</li>
-                        <li><b>git commit:</b> Save the changes with a message.</li>
-                        <li><b>git push:</b> Send your saves to a server (like GitHub).</li>
+                        <li><b>Repository (Repo):</b> The "Project Folder" that Git is watching.</li>
+                        <li><b>Init:</b> <code>git init</code> starts Git inside a new folder.</li>
+                        <li><b>The Stage:</b> A middle-ground where you pick which files to save.</li>
+                        <li><b>Add:</b> <code>git add .</code> puts all your changes onto the "Stage."</li>
+                        <li><b>Commit:</b> <code>git commit -m "msg"</code> permanently saves the staged changes.</li>
+                        <li><b>The Message:</b> Every commit needs a <code>-m</code> message explaining the change.</li>
+                        <li><b>Push:</b> Sending your local saves up to GitHub (the cloud).</li>
+                        <li><b>Pull:</b> Downloading the latest changes from the cloud to your computer.</li>
+                        <li><b>Status:</b> <code>git status</code> tells you what has changed since the last save.</li>
+                        <li><b>Log:</b> <code>git log</code> shows you a history of all your past "Commits."</li>
                     </ul>
+        
+                    <div class="example-box">
+                        Step 1: git add . <br>
+                        Step 2: git commit -m "Fixed the header"
+                    </div>
                 `,
                 question: "Which command is used to permanently save your staged changes in the history?",
                 type: "choice",
                 options: ["git save", "git commit", "git push", "git init"],
                 answer: 1
             }
-            // ... more roadmap items can be added here
         ];
 
         let currentLevel = 0;
