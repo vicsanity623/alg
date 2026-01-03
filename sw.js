@@ -4,7 +4,7 @@ const CACHE_NAME = `AIC-${GAME_VERSION}`;
 // Added manifest.json to the assets list
 const ASSETS = [
     './',
-    './index.html',
+    './coding.html',
     './artist.html',
     './gallery.js',
     './manifest.json' 
