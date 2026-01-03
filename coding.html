@@ -122,7 +122,7 @@
         .console-error { color: #f87171; margin-bottom: 4px; font-weight: 600; }
         .console-tip { color: #fbbf24; font-style: italic; margin-top: 5px; border-top: 1px solid #333; padding-top: 5px; }
 
-        /* MOBILE HELPER BAR - NEW */
+        /* MOBILE HELPER BAR Styles */
         .coding-helper-bar {
             display: flex;
             gap: 5px;
@@ -143,12 +143,15 @@
             cursor: pointer;
         }
         .helper-btn:active { background: var(--primary); }
+
+        /* Version Styling */
         .version {
-            font-size: 0.7rem;      /* Makes it smaller */
-            opacity: 0.6;           /* Makes it slightly transparent/dimmed */
-            font-weight: 400;       /* Makes the font weight normal instead of bold */
-            vertical-align: middle; /* Aligns it nicely with the text */
-            margin-left: 8px;       /* Pushes it slightly away from the name */
+            font-size: 0.7rem;
+            opacity: 0.6;
+            font-weight: 400;
+            vertical-align: middle;
+            margin-left: 8px;
+            -webkit-text-fill-color: var(--text-dim); /* Overrides logo gradient for this span */
         }
     </style>
 </head>
@@ -225,7 +228,7 @@
             </div>
         </div>
 
-        <!-- Studio Section -->
+        <!-- Write Code (Studio) Section -->
         <div id="studio-section" class="hidden">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <h2 style="margin:0; color:var(--accent);">DevStudio Whiteboard</h2>
@@ -234,7 +237,7 @@
             <div class="studio-layout">
                 <div class="editor-stack">
                     <div class="editor-window">
-                        <div class="editor-label">HTML</div>
+                        <div class="editor-label">HTML Structure</div>
                         <div class="coding-helper-bar">
                             <button class="helper-btn" onclick="insertStudio('s-html', '  ')">TAB</button>
                             <button class="helper-btn" onclick="insertStudio('s-html', '<')">&lt;</button>
@@ -242,10 +245,10 @@
                             <button class="helper-btn" onclick="insertStudio('s-html', '/')">/</button>
                             <button class="helper-btn" onclick="insertStudio('s-html', '\"')">"</button>
                         </div>
-                        <textarea id="s-html" class="studio-textarea" spellcheck="false"><h1>Hello World</h1></textarea>
+                        <textarea id="s-html" class="studio-textarea" spellcheck="false" placeholder="<!-- Write HTML here -->"><h1>Hello World</h1></textarea>
                     </div>
                     <div class="editor-window">
-                        <div class="editor-label">CSS</div>
+                        <div class="editor-label">CSS Presentation</div>
                         <div class="coding-helper-bar">
                             <button class="helper-btn" onclick="insertStudio('s-css', '  ')">TAB</button>
                             <button class="helper-btn" onclick="insertStudio('s-css', '{')">{</button>
@@ -253,10 +256,10 @@
                             <button class="helper-btn" onclick="insertStudio('s-css', ';')">;</button>
                             <button class="helper-btn" onclick="insertStudio('s-css', ':')">:</button>
                         </div>
-                        <textarea id="s-css" class="studio-textarea" spellcheck="false">h1 { color: #8b5cf6; }</textarea>
+                        <textarea id="s-css" class="studio-textarea" spellcheck="false" placeholder="/* Write CSS here */">h1 { color: #8b5cf6; font-family: sans-serif; }</textarea>
                     </div>
                     <div class="editor-window">
-                        <div class="editor-label">JS</div>
+                        <div class="editor-label">JavaScript Logic</div>
                         <div class="coding-helper-bar">
                             <button class="helper-btn" onclick="insertStudio('s-js', '  ')">TAB</button>
                             <button class="helper-btn" onclick="insertStudio('s-js', '(')">(</button>
@@ -264,7 +267,7 @@
                             <button class="helper-btn" onclick="insertStudio('s-js', ';')">;</button>
                             <button class="helper-btn" onclick="insertStudio('s-js', '\"')">"</button>
                         </div>
-                        <textarea id="s-js" class="studio-textarea" spellcheck="false">console.log("Ready!");</textarea>
+                        <textarea id="s-js" class="studio-textarea" spellcheck="false" placeholder="// Write JS here">console.log("Welcome to the Studio!");</textarea>
                     </div>
                 </div>
                 <div class="preview-window">
@@ -461,6 +464,7 @@
             document.getElementById('studio-section').classList.add('hidden');
             document.getElementById('library-section').classList.remove('hidden');
             document.getElementById('nav-controls').classList.remove('hidden');
+            
             renderLibraryNav(topicIndex);
             renderLibraryContent(topicIndex);
         }
@@ -597,7 +601,7 @@
             iframe.srcdoc = combinedCode;
         }
 
-        /* NEW HELPER FUNCTION FOR MOBILE TABBING */
+        /* HELPER FUNCTION FOR MOBILE INJECTION */
         function insertStudio(id, text) {
             const el = document.getElementById(id);
             const start = el.selectionStart;
