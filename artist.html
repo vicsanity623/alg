@@ -2,479 +2,1299 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Visionary Infinite Canvas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevQuest: Coding Academy</title>
+    <!-- PWA / iOS Standalone Meta Tags -->
     <link rel="manifest" href="manifest.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <meta name="apple-mobile-web-app-title" content="Sketch Canvas">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="DevQuest">
+    <meta name="theme-color" content="#000000">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #0a0a0a;
-            --ui-bg: rgba(20, 20, 20, 0.92);
-            --accent: #007AFF;
-            --accent-glow: rgba(0, 122, 255, 0.5);
-            --text: #ffffff;
-            --panel-border: rgba(255, 255, 255, 0.12);
+            --bg: #030712;
+            --card: rgba(17, 24, 39, 0.8);
+            --primary: #8b5cf6;
+            --secondary: #06b6d4;
+            --accent: #10b981;
+            --text: #f9fafb;
+            --text-dim: #9ca3af;
+            --border: rgba(255, 255, 255, 0.1);
         }
 
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background-color: var(--bg-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overscroll-behavior: none;
+        * { box-sizing: border-box; transition: all 0.3s ease; }
+
+        body {
+            margin: 0;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background: radial-gradient(circle at top right, #1e1b4b, #030712);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
-        #loader {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 1000; display: flex;
-            flex-direction: column; align-items: center; justify-content: center;
-            transition: opacity 0.5s ease;
-        }
-        .spinner {
-            width: 40px; height: 40px; border: 4px solid #333;
-            border-top: 4px solid var(--accent); border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-        canvas { display: block; touch-action: none; background-color: #0a0a0a; }
-
-        #ui-layer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 10; }
-
-        /* Professional Standard Panels */
-        .panel {
-            position: absolute; background: var(--ui-bg); backdrop-filter: blur(25px);
-            border-radius: 18px; padding: 12px; pointer-events: auto;
-            box-shadow: 0 12px 45px rgba(0,0,0,0.9); border: 1px solid var(--panel-border);
-            display: flex; gap: 12px; align-items: center;
+        /* Navigation */
+        nav {
+            padding: 20px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border);
         }
 
-        /* Fixed Placement: Avoiding Notch and Device Borders */
-        #toolbar {
-            top: 50%; left: 20px; transform: translateY(-50%);
-            flex-direction: column; padding: 25px 12px;
-            margin-left: env(safe-area-inset-left);
-            max-height: 80vh; overflow-y: auto;
+        .logo { font-weight: 800; font-size: 1.5rem; background: linear-gradient(to right, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+        /* Main Menu */
+        .container { max-width: 1200px; margin: 40px auto; padding: 0 20px; }
+
+        .hero { text-align: center; margin-bottom: 60px; }
+        .hero h1 { font-size: 3.5rem; margin-bottom: 10px; }
+        .hero p { color: var(--text-dim); font-size: 1.2rem; max-width: 600px; margin: 0 auto; }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-top: 40px;
         }
 
-        #status-bar { 
-            top: max(20px, env(safe-area-inset-top)); 
-            left: 20px; font-size: 11px; color: var(--text); 
-            opacity: 0.9; font-weight: 700; letter-spacing: 1.5px;
-            padding: 8px 15px; border-radius: 10px;
+        .menu-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            padding: 40px;
+            border-radius: 24px;
+            cursor: pointer;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
         }
 
-        #export-panel { 
-            top: max(20px, env(safe-area-inset-top)); 
-            right: 20px; display: flex; gap: 10px;
-            margin-right: env(safe-area-inset-right);
+        .menu-card:hover { border-color: var(--primary); transform: translateY(-10px); background: rgba(31, 41, 55, 0.9); }
+        .menu-card h2 { font-size: 2rem; margin-bottom: 10px; }
+        .menu-card p { color: var(--text-dim); }
+
+        /* Library & Study Guide */
+        .library-layout { display: grid; grid-template-columns: 280px 1fr; gap: 30px; }
+        .sidebar { background: var(--card); border-radius: 20px; padding: 20px; height: calc(100vh - 150px); position: sticky; top: 100px; overflow-y: auto; border: 1px solid var(--border); }
+        .lib-nav-item { padding: 12px 16px; border-radius: 10px; cursor: pointer; margin-bottom: 5px; font-size: 0.9rem; color: var(--text-dim); }
+        .lib-nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+        .lib-nav-item.active { background: var(--primary); color: white; font-weight: 600; }
+
+        .content-body { background: var(--card); border-radius: 24px; padding: 40px; border: 1px solid var(--border); line-height: 1.7; }
+        .content-body h1 { color: var(--secondary); border-bottom: 1px solid var(--border); padding-bottom: 10px; }
+        .example-box { background: #000; border-radius: 12px; padding: 20px; font-family: 'Fira Code', monospace; margin: 20px 0; border-left: 4px solid var(--primary); white-space: pre-wrap; word-wrap: break-word; }
+
+        /* Game UI */
+        .game-panel { max-width: 800px; margin: 0 auto; background: var(--card); border-radius: 30px; padding: 50px; border: 1px solid var(--border); }
+        .progress-container { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-bottom: 30px; }
+        .progress-fill { height: 100%; background: linear-gradient(to right, var(--primary), var(--secondary)); width: 0%; border-radius: 4px; }
+
+        .option-btn { width: 100%; padding: 18px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: white; border-radius: 15px; margin-bottom: 12px; cursor: pointer; text-align: left; font-size: 1rem; }
+        .option-btn:hover { background: var(--primary); border-color: var(--primary); }
+
+        textarea { width: 100%; height: 150px; background: #000; border: 1px solid var(--border); border-radius: 15px; padding: 20px; color: #10b981; font-family: 'Fira Code', monospace; margin-bottom: 20px; resize: none; outline: none; }
+
+        button.primary-btn { background: var(--primary); color: white; border: none; padding: 15px 30px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+        button.secondary-btn { background: transparent; border: 1px solid var(--primary); color: var(--primary); padding: 15px 30px; border-radius: 12px; font-weight: 700; cursor: pointer; }
+
+        .hidden { display: none !important; }
+        .feedback { padding: 15px; border-radius: 12px; margin-top: 20px; font-weight: 600; }
+        .success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+        .error { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+
+        /* STUDIO STYLES */
+        .studio-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: calc(100vh - 180px); }
+        .editor-stack { display: flex; flex-direction: column; gap: 10px; }
+        .editor-window { flex: 1; display: flex; flex-direction: column; background: #0f172a; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; }
+        .editor-label { background: #1e293b; padding: 5px 15px; font-size: 0.7rem; font-weight: 800; color: var(--text-dim); text-transform: uppercase; border-bottom: 1px solid var(--border); }
+        .studio-textarea { flex: 1; width: 100%; background: transparent; border: none; padding: 10px; color: #38bdf8; font-family: 'Fira Code', monospace; font-size: 0.85rem; margin: 0; }
+        .preview-window { display: flex; flex-direction: column; gap: 10px; }
+        #studio-iframe { flex: 2; width: 100%; background: white; border-radius: 12px; border: none; }
+        .studio-console { flex: 1; background: #000; border-radius: 12px; border: 1px solid var(--border); padding: 15px; font-family: 'Fira Code', monospace; overflow-y: auto; font-size: 0.8rem; }
+        .console-log { color: #e2e8f0; margin-bottom: 4px; }
+        .console-error { color: #f87171; margin-bottom: 4px; font-weight: 600; }
+        .console-tip { color: #fbbf24; font-style: italic; margin-top: 5px; border-top: 1px solid #333; padding-top: 5px; }
+
+        /* MOBILE HELPER BAR Styles */
+        .coding-helper-bar {
+            display: flex;
+            gap: 5px;
+            padding: 5px 10px;
+            background: #1e293b;
+            overflow-x: auto;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
         }
-
-        /* Enhanced High-Quality Buttons */
-        button, input[type="color"], select {
-            background: #1c1c1e; border: 1px solid rgba(255,255,255,0.05); color: white;
-            padding: 10px; border-radius: 12px; cursor: pointer;
-            font-size: 17px; width: 52px; height: 52px;
-            display: flex; align-items: center; justify-content: center;
-            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        .helper-btn {
+            background: rgba(255,255,255,0.1);
+            color: var(--text);
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            cursor: pointer;
         }
+        .helper-btn:active { background: var(--primary); }
 
-        button:active { transform: scale(0.92); background: #2c2c2e; }
-        
-        .btn-gallery { background: linear-gradient(145deg, #333, #111); }
-        .btn-export { background: var(--accent); font-weight: 600; width: auto; padding: 0 20px; }
-        .btn-clear { background: rgba(255, 69, 58, 0.15); color: #ff453a; width: auto; padding: 0 20px; border: 1px solid rgba(255, 69, 58, 0.3); }
-
-        select, #sizePicker { width: 70px; font-size: 14px; background: #2c2c2e; }
-        .tool-active { 
-            background: var(--accent) !important; 
-            box-shadow: 0 0 25px var(--accent-glow);
-            border-color: rgba(255,255,255,0.3);
+        /* Version Styling */
+        .version {
+            font-size: 0.7rem;
+            opacity: 0.6;
+            font-weight: 400;
+            vertical-align: middle;
+            margin-left: 8px;
+            -webkit-text-fill-color: var(--text-dim); /* Overrides logo gradient for this span */
         }
-
-        input[type="range"] {
-            writing-mode: bt-lr; -webkit-appearance: slider-vertical;
-            width: 28px; height: 120px; margin: 12px 0;
-            background: #333; border-radius: 10px;
-        }
-
-        /* Modernized Modal */
-        #export-modal {
-            display: none; position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); background: #1c1c1e;
-            padding: 30px; border-radius: 28px; z-index: 100;
-            width: 340px; border: 1px solid #333; pointer-events: auto;
-            box-shadow: 0 20px 60px rgba(0,0,0,1);
-        }
-
-        .overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.88); z-index: 99; pointer-events: auto;
-        }
-        
-        .label-text { display: block; font-size: 10px; text-transform: uppercase; color: #8e8e93; letter-spacing: 1.2px; margin-bottom: 6px; font-weight: 700; }
-
-        /* Gallery Specific Styles */
-        #gallery-modal {
-            display: none; position: fixed; top: 50%; left: 50%;
-            transform: translate(-50%, -50%); background: #000;
-            padding: 25px; border-radius: 30px; z-index: 101;
-            width: 92vw; height: 85vh; border: 1px solid #222; 
-            pointer-events: auto; overflow: hidden;
-            display: flex; flex-direction: column;
-        }
-
-        #gallery-grid {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 18px; overflow-y: auto; padding-top: 15px; flex-grow: 1;
-        }
-
-        .gallery-item {
-            background: #111; border-radius: 15px; overflow: hidden;
-            position: relative; height: 180px; border: 1px solid #222;
-            transition: transform 0.2s;
-        }
-        .gallery-item:active { transform: scale(0.98); }
-
-        .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
-
-        .gallery-info {
-            position: absolute; bottom: 0; width: 100%; background: linear-gradient(transparent, rgba(0,0,0,0.9));
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 10px; box-sizing: border-box; font-size: 11px; color: #fff;
-        }
-
-        #full-viewer {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 200; align-items: center; justify-content: center;
-        }
-        #full-viewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        #full-viewer .close-btn { position: absolute; top: max(30px, env(safe-area-inset-top)); right: 30px; z-index: 201; font-size: 35px; color: white; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="loader">
-    <div class="spinner"></div>
-    <p style="color: white; margin-top: 20px; font-size: 11px; letter-spacing: 3px; font-weight: bold;">SKETCHING STUDIO</p>
-</div>
+    <nav>
+        <div class="logo">DEVQUEST ACADEMY <span class="version">v1.1</span></div>
+        <div id="nav-controls" class="hidden">
+            <button class="secondary-btn" onclick="showMainMenu()" style="padding: 8px 16px; font-size: 0.8rem;">Main Menu</button>
+        </div>
+    </nav>
 
-<canvas id="canvas"></canvas>
+    <div class="container">
+        <!-- Main Menu -->
+        <div id="main-menu">
+            <div class="hero">
+                <h1>The Future of Learning</h1>
+                <p>A zero-to-pro coding roadmap. Study the deep-dive guide, then test your skills to unlock the path to mastery.</p>
+            </div>
+            
+            <div class="menu-grid">
+                <div class="menu-card" onclick="openLibrary()">
+                    <h2>Study Library</h2>
+                    <p>Essential for beginners. Read detailed explanations and examples of every topic.</p>
+                </div>
+                <div class="menu-card" onclick="startGame()">
+                    <h2>Game Path</h2>
+                    <p>Test your proficiency and unlock levels from HTML to Advanced Security.</p>
+                </div>
+                <div class="menu-card" onclick="openStudio()" style="border-color: var(--accent);">
+                    <h2 style="color: var(--accent);">Write Code</h2>
+                    <p>Free practice whiteboard. Write code, see results, and get smart error tips.</p>
+                </div>
+            </div>
+        </div>
 
-<div id="ui-layer">
-    <div id="status-bar" class="panel">ZOOM: <span id="zoom-val">100%</span></div>
-    <div id="export-panel" class="panel">
-        <button class="btn-gallery" onclick="GalleryUI.open()" title="Open Gallery">🖼️</button>
-        <button class="btn-export" onclick="showExport()">EXPORT</button>
-        <button class="btn-clear" onclick="clearCanvas()">CLEAR</button>
+        <!-- Library Section -->
+        <div id="library-section" class="hidden">
+            <div class="library-layout">
+                <div class="sidebar" id="lib-nav">
+                    <!-- Topics injected here -->
+                </div>
+                <div class="content-body" id="lib-content">
+                    <!-- Content injected here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Game Section -->
+        <div id="game-section" class="hidden">
+            <div class="game-panel">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                    <span id="mod-title" style="color: var(--secondary); font-weight: 800;">LEVEL 1: HTML Basics</span>
+                    <span id="mod-progress">1 / 12</span>
+                </div>
+                <div class="progress-container"><div class="progress-fill" id="progress-bar"></div></div>
+                
+                <h2 id="q-text" style="margin-bottom: 30px;">How do you define a level-one heading?</h2>
+                
+                <div id="q-options" class="menu-grid" style="grid-template-columns: 1fr; gap: 10px;">
+                    <!-- Options injected here -->
+                </div>
+
+                <div id="q-editor" class="hidden">
+                    <textarea id="code-input" placeholder="Type your code here..."></textarea>
+                    <button class="primary-btn" onclick="validateCode()">Verify Proficiency</button>
+                </div>
+
+                <div id="game-feedback" class="feedback hidden"></div>
+                
+                <div style="margin-top: 40px; text-align: center;">
+                    <button class="secondary-btn" onclick="openLibrary()" style="font-size: 0.8rem;">Need to Study this topic?</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Write Code (Studio) Section -->
+        <div id="studio-section" class="hidden">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+                <h2 style="margin:0; color:var(--accent);">DevStudio Whiteboard</h2>
+                <button class="primary-btn" onclick="runStudioCode()" style="background:var(--accent); padding:10px 25px;">▶ RUN & PREVIEW</button>
+            </div>
+            <div class="studio-layout">
+                <div class="editor-stack">
+                    <div class="editor-window">
+                        <div class="editor-label">HTML Structure</div>
+                        <div class="coding-helper-bar">
+                            <button class="helper-btn" onclick="performUndo('s-html')" style="color: #f87171;">UNDO</button>
+                            <button class="helper-btn" onclick="insertStudio('s-html', '  ')">TAB</button>
+                            <button class="helper-btn" onclick="insertStudio('s-html', '<')">&lt;</button>
+                            <button class="helper-btn" onclick="insertStudio('s-html', '>')">&gt;</button>
+                            <button class="helper-btn" onclick="insertStudio('s-html', '/')">/</button>
+                            <button class="helper-btn" onclick="insertStudio('s-html', '\"')">"</button>
+                        </div>
+                        <textarea id="s-html" class="studio-textarea" spellcheck="false" placeholder="<!-- Write HTML here -->"><h1>Hello World</h1></textarea>
+                    </div>
+                    <div class="editor-window">
+                        <div class="editor-label">CSS Presentation</div>
+                        <div class="coding-helper-bar">
+                            <button class="helper-btn" onclick="performUndo('s-css')" style="color: #f87171;">UNDO</button>
+                            <button class="helper-btn" onclick="insertStudio('s-css', '  ')">TAB</button>
+                            <button class="helper-btn" onclick="insertStudio('s-css', '{')">{</button>
+                            <button class="helper-btn" onclick="insertStudio('s-css', '}')">}</button>
+                            <button class="helper-btn" onclick="insertStudio('s-css', ';')">;</button>
+                            <button class="helper-btn" onclick="insertStudio('s-css', ':')">:</button>
+                        </div>
+                        <textarea id="s-css" class="studio-textarea" spellcheck="false" placeholder="/* Write CSS here */">h1 { color: #8b5cf6; font-family: sans-serif; }</textarea>
+                    </div>
+                    <div class="editor-window">
+                        <div class="editor-label">JavaScript Logic</div>
+                        <div class="coding-helper-bar">
+                            <button class="helper-btn" onclick="performUndo('s-js')" style="color: #f87171;">UNDO</button>
+                            <button class="helper-btn" onclick="insertStudio('s-js', '  ')">TAB</button>
+                            <button class="helper-btn" onclick="insertStudio('s-js', '(')">(</button>
+                            <button class="helper-btn" onclick="insertStudio('s-js', ')')">)</button>
+                            <button class="helper-btn" onclick="insertStudio('s-js', ';')">;</button>
+                            <button class="helper-btn" onclick="insertStudio('s-js', '\"')">"</button>
+                        </div>
+                        <textarea id="s-js" class="studio-textarea" spellcheck="false" placeholder="// Write JS here">console.log("Welcome to the Studio!");</textarea>
+                    </div>
+                </div>
+                <div class="preview-window">
+                    <div class="editor-label" style="background:#475569; border:none; border-radius:12px 12px 0 0;">Live Result</div>
+                    <iframe id="studio-iframe"></iframe>
+                    <div class="studio-console" id="s-console">
+                        <div style="color:var(--secondary); font-size:0.6rem; margin-bottom:10px; text-transform:uppercase;">Debug Console</div>
+                        <div id="console-output"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
-    <div id="toolbar" class="panel">
-        <span class="label-text">Color</span>
-        <input type="color" id="colorPicker" value="#44ffaa">
-        <span class="label-text">Tool</span>
-        <select id="toolType">
-            <option value="pen">Studio Pen</option>
-            <option value="brush">Watercolor</option>
-            <option value="pencil">Graphite</option>
-            <option value="eraser">Eraser</option>
-        </select>
-        <span class="label-text">Size</span>
-        <input type="range" id="sizePicker" min="1" max="250" value="15">
-        <span class="label-text">Flow</span>
-        <input type="range" id="opacityPicker" min="1" max="100" value="100">
-        <button id="btn-draw" class="tool-active" onclick="setMode('draw')">✎</button>
-        <button id="btn-pan" onclick="setMode('pan')">✥</button>
-    </div>
-</div>
 
-<div id="export-modal-overlay" class="overlay" onclick="hideExport()"></div>
-<div id="export-modal">
-    <h3 style="color:white; margin-top:0; font-size: 22px; letter-spacing: -0.5px;">Export Artwork</h3>
-    
-    <label class="label-text">Format</label>
-    <select id="expFormat" style="width: 100%; margin-bottom: 15px; height: 50px;">
-        <option value="vector/svg">SVG (Infinite Vector)</option>
-        <option value="image/png">PNG (High Res)</option>
-        <option value="image/jpeg">JPEG (Compressed)</option>
-    </select>
+    <script>
+        // Data Structure - EXPANDED CONTENT
+        const academyData = [
+            {
+                id: "html",
+                title: "HTML Foundation",
+                difficulty: "Beginner",
+                explanation: `
+                    <h1>1. HTML: The Global Structure</h1>
+                    <p>HTML (HyperText Markup Language) is the skeleton of every website. It defines what content exists on the page, distinguishing between headings, paragraphs, images, and interactive elements.</p>
+                    
+                    <h3>A. The Basic Structure</h3>
+                    <p>Every HTML document requires a specific boilerplate to function correctly in browsers.</p>
+                    <div class="example-box">
+&lt;!DOCTYPE html&gt;          &lt;!-- Tells browser this is HTML5 --&gt;
+&lt;html lang="en"&gt;           &lt;!-- Root element --&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;  &lt;!-- Character encoding --&gt;
+    &lt;title&gt;Page Title&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;!-- Visible content goes here --&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+                    </div>
 
-    <label class="label-text">Background</label>
-    <select id="expBG" style="width: 100%; margin-bottom: 15px; height: 50px;">
-        <option value="#0a0a0a">Black Canvas</option>
-        <option value="#ffffff">True White</option>
-        <option value="transparent">Transparent</option>
-    </select>
+                    <h3>B. Core Elements & Semantics</h3>
+                    <p>Semantic HTML means using tags that describe their meaning (e.g., using <code>&lt;header&gt;</code> instead of just <code>&lt;div&gt;</code>). This helps SEO and accessibility.</p>
+                    <ul>
+                        <li><b>Headings:</b> <code>&lt;h1&gt;</code> (Main topic) to <code>&lt;h6&gt;</code> (Least important).</li>
+                        <li><b>Containers:</b> <code>&lt;div&gt;</code> (Generic block), <code>&lt;span&gt;</code> (Generic inline), <code>&lt;section&gt;</code>, <code>&lt;article&gt;</code>.</li>
+                        <li><b>Text:</b> <code>&lt;p&gt;</code> (Paragraph), <code>&lt;strong&gt;</code> (Bold), <code>&lt;em&gt;</code> (Italic).</li>
+                    </ul>
 
-    <div id="raster-options">
-        <label class="label-text">Resolution Width (px)</label>
-        <input type="number" id="expWidth" value="4096" style="width:100%; margin-bottom:20px; background:#000; color:#fff; border:1px solid #444; padding:12px; border-radius:12px; font-size: 16px;">
-    </div>
-    
-    <button onclick="performExport()" style="width:100%; background: var(--accent); padding:18px; font-weight:800; border-radius:15px; border: none; color: white; font-size: 16px;">SAVE TO GALLERY</button>
-</div>
+                    <h3>C. Forms and Inputs</h3>
+                    <p>Forms are how websites collect user data.</p>
+                    <div class="example-box">
+&lt;form action="/submit"&gt;
+  &lt;label for="username"&gt;Username:&lt;/label&gt;
+  &lt;input type="text" id="username" placeholder="Enter name" /&gt;
+  
+  &lt;label for="pass"&gt;Password:&lt;/label&gt;
+  &lt;input type="password" id="pass" /&gt;
+  
+  &lt;button type="submit"&gt;Login&lt;/button&gt;
+&lt;/form&gt;
+                    </div>
 
-<div id="gallery-modal" style="display:none;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-        <h3 style="color:white; margin:0; font-size: 24px;">Studio Gallery</h3>
-        <button onclick="hideExport()" style="width:auto; height:auto; padding:8px 20px; background:#2c2c2e; border-radius:10px; border:none; color: white;">Close</button>
-    </div>
-    <div id="gallery-grid"></div>
-</div>
+                    <h3>D. Lists and Tables</h3>
+                    <p>Organizing data visually.</p>
+                    <div class="example-box">
+&lt;!-- Unordered List (Bullets) --&gt;
+&lt;ul&gt;
+  &lt;li&gt;Item One&lt;/li&gt;
+  &lt;li&gt;Item Two&lt;/li&gt;
+&lt;/ul&gt;
 
-<div id="full-viewer">
-    <span class="close-btn" onclick="GalleryUI.closeFull()">&times;</span>
-    <img src="" alt="Full View">
-</div>
+&lt;!-- Ordered List (Numbers) --&gt;
+&lt;ol&gt;
+  &lt;li&gt;First Step&lt;/li&gt;
+  &lt;li&gt;Second Step&lt;/li&gt;
+&lt;/ol&gt;
+                    </div>
+                `,
+                question: "Which tag is used specifically for the main, most important heading of a page?",
+                type: "choice",
+                options: ["<head>", "<h6>", "<h1>", "<main>"],
+                answer: 2
+            },
+            {
+                id: "css",
+                title: "CSS Presentation",
+                difficulty: "Beginner",
+                explanation: `
+                    <h1>2. CSS: The Visual Grammar</h1>
+                    <p>CSS (Cascading Style Sheets) controls the look and feel of the HTML. It handles colors, layout, fonts, and responsiveness.</p>
+                    
+                    <h3>A. Selectors and Specificity</h3>
+                    <p>We target HTML elements using selectors. Specificity determines which rule wins if two rules conflict.</p>
+                    <div class="example-box">
+/* Target by Tag Name */
+p { color: grey; }
 
-<script src="gallery.js"></script>
-<script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
-    const zoomDisplay = document.getElementById('zoom-val');
-    
-    let strokes = [], currentStroke = null, camera = { x: 0, y: 0, zoom: 1 };
-    let mode = 'draw', isDragging = false, isPinching = false;
-    let crosshairActive = false, crosshairPos = { x: 0, y: 0 }, crosshairOffset = { x: 0, y: 0 };
-    let initialPinchDist = 0, initialPinchZoom = 1, lastTapTime = 0;
+/* Target by Class (Reusable) - distinct with (.) */
+.btn { background: blue; color: white; }
 
-    window.onload = () => {
-        resize();
-        document.getElementById('loader').style.opacity = '0';
-        setTimeout(() => document.getElementById('loader').remove(), 500);
-        requestAnimationFrame(renderLoop);
-    };
+/* Target by ID (Unique) - distinct with (#) */
+#header { height: 50px; }
 
-    function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    window.addEventListener('resize', resize);
+/* Target items inside other items */
+.card h2 { font-size: 20px; }
+                    </div>
+        
+                    <h3>B. The Box Model</h3>
+                    <p>Every element in HTML is a box. Understanding this is crucial for layout.</p>
+                    <ul>
+                        <li><b>Content:</b> The actual text or image.</li>
+                        <li><b>Padding:</b> Space <i>inside</i> the border (pushes content inward).</li>
+                        <li><b>Border:</b> The line around the edge.</li>
+                        <li><b>Margin:</b> Space <i>outside</i> the border (pushes other elements away).</li>
+                    </ul>
+                    <div class="example-box">
+.box {
+  width: 200px;
+  padding: 20px; /* Space inside */
+  border: 1px solid black;
+  margin: 20px;  /* Space outside */
+}
+                    </div>
 
-    function screenToWorld(sx, sy) {
-        return { x: (sx - camera.x) / camera.zoom, y: (sy - camera.y) / camera.zoom };
-    }
+                    <h3>C. Modern Layouts: Flexbox</h3>
+                    <p>Flexbox is the best way to align items in a row or column.</p>
+                    <div class="example-box">
+.container {
+  display: flex;
+  justify-content: center; /* Horizontally center */
+  align-items: center;     /* Vertically center */
+  gap: 10px;               /* Space between items */
+}
+                    </div>
 
-    function undo() { if (strokes.length > 0) strokes.pop(); }
+                    <h3>D. Responsive Design</h3>
+                    <p>Using "Media Queries" to change styles for mobile phones.</p>
+                    <div class="example-box">
+/* Default (Desktop) */
+body { font-size: 18px; }
 
-    function startNewStroke(x, y) {
-        const pos = screenToWorld(x, y);
-        currentStroke = {
-            color: document.getElementById('colorPicker').value,
-            size: document.getElementById('sizePicker').value / camera.zoom,
-            opacity: document.getElementById('opacityPicker').value / 100,
-            type: document.getElementById('toolType').value,
-            points: [{...pos, p: 0.5}]
-        };
-        strokes.push(currentStroke);
-    }
+/* Mobile devices (Max width 600px) */
+@media (max-width: 600px) {
+  body { font-size: 14px; }
+  .container { flex-direction: column; }
+}
+                    </div>
+                `,
+                question: "Write the CSS selector that would change the color of all <p> tags to 'red'.",
+                type: "code",
+                check: (val) => val.replace(/\s/g, '').includes("p{color:red;}")
+            },
+            {
+                id: "js",
+                title: "JavaScript Logic",
+                difficulty: "Beginner",
+                explanation: `
+                    <h1>3. JavaScript: The Action</h1>
+                    <p>JavaScript (JS) makes websites interactive. It can calculate math, validate forms, and animate elements.</p>
+        
+                    <h3>A. Variables and Data Types</h3>
+                    <p>Containers for storing data.</p>
+                    <div class="example-box">
+let username = "DevQuest"; // String
+const age = 25;            // Number (Cannot change)
+let isOnline = true;       // Boolean
+let skills = ["HTML", "CSS", "JS"]; // Array
+let user = { name: "Alex", id: 1 }; // Object
+                    </div>
 
-    canvas.addEventListener('touchstart', e => {
-        if (mode === 'draw') {
-            if (e.touches.length === 2) {
-                isPinching = true; crosshairActive = true; isDragging = false; currentStroke = null;
-                crosshairPos.x = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                crosshairPos.y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-            } else if (e.touches.length === 1) {
-                const now = Date.now();
-                if (now - lastTapTime < 350) { undo(); undo(); lastTapTime = 0; return; }
-                lastTapTime = now;
-                isDragging = true;
-                startNewStroke(e.touches[0].clientX, e.touches[0].clientY);
+                    <h3>B. Conditionals (Logic)</h3>
+                    <p>Making decisions in code using if/else statements.</p>
+                    <div class="example-box">
+if (age >= 18) {
+  console.log("Adult access granted");
+} else {
+  console.log("Access denied");
+}
+                    </div>
+
+                    <h3>C. Loops</h3>
+                    <p>Repeating actions automatically.</p>
+                    <div class="example-box">
+// For Loop: Run 5 times
+for (let i = 0; i < 5; i++) {
+  console.log("Count: " + i);
+}
+
+// Array Loop
+skills.forEach(skill => {
+  console.log("I know: " + skill);
+});
+                    </div>
+
+                    <h3>D. Functions</h3>
+                    <p>Reusable blocks of code.</p>
+                    <div class="example-box">
+function add(a, b) {
+  return a + b;
+}
+
+let result = add(5, 10); // result is 15
+                    </div>
+                `,
+                question: "What keyword is used to declare a variable that is constant and cannot be changed later?",
+                type: "choice",
+                options: ["let", "var", "const", "change"],
+                answer: 2
+            },
+            {
+                id: "dom",
+                title: "The DOM",
+                difficulty: "Intermediate",
+                explanation: `
+                    <h1>4. The DOM: The Bridge</h1>
+                    <p>The Document Object Model (DOM) is an object representation of the HTML. JS uses it to modify the page in real-time.</p>
+        
+                    <h3>A. Selecting Elements</h3>
+                    <div class="example-box">
+// Old way
+const btn = document.getElementById('myBtn');
+
+// Modern way (Selects CSS classes, IDs, or tags)
+const title = document.querySelector('.main-title');
+const allItems = document.querySelectorAll('li');
+                    </div>
+
+                    <h3>B. Modifying Content and Styles</h3>
+                    <div class="example-box">
+const box = document.querySelector('.box');
+
+// Change text
+box.innerText = "Updated Content!";
+
+// Change HTML inside
+box.innerHTML = "<b>Bold Text</b>";
+
+// Change CSS
+box.style.backgroundColor = "blue";
+box.classList.add("active"); // Adds a CSS class
+                    </div>
+
+                    <h3>C. Event Listeners</h3>
+                    <p>Waiting for user interaction (clicks, typing, scrolling).</p>
+                    <div class="example-box">
+const btn = document.querySelector('button');
+
+btn.addEventListener('click', function() {
+  alert("Button was clicked!");
+});
+                    </div>
+
+                    <h3>D. Creating Elements</h3>
+                    <p>Adding new HTML via JavaScript.</p>
+                    <div class="example-box">
+// 1. Create
+const newDiv = document.createElement('div');
+newDiv.innerText = "I am new here";
+
+// 2. Append to body
+document.body.appendChild(newDiv);
+                    </div>
+                `,
+                question: "Write the JavaScript command to find an element with the ID 'btn'.",
+                type: "code",
+                check: (val) => val.includes("document.getElementById('btn')") || val.includes("document.querySelector('#btn')")
+            },
+            {
+                id: "jsdeep",
+                title: "JS Deep Dive",
+                difficulty: "Advanced",
+                explanation: `
+                    <h1>5. JavaScript Deep Dive</h1>
+                    <p>Moving beyond basics to understand how JS actually works under the hood.</p>
+
+                    <h3>A. Scope (Global vs Block)</h3>
+                    <p>Scope determines where variables are visible.</p>
+                    <div class="example-box">
+let globalVar = "I am everywhere";
+
+if (true) {
+  let blockVar = "I only exist here";
+  console.log(globalVar); // Works
+}
+// console.log(blockVar); // Error: blockVar is not defined
+                    </div>
+
+                    <h3>B. Arrow Functions</h3>
+                    <p>A shorter syntax for functions introduced in ES6.</p>
+                    <div class="example-box">
+// Traditional
+function sum(a, b) { return a + b; }
+
+// Arrow Function
+const sum = (a, b) => a + b;
+                    </div>
+
+                    <h3>C. Destructuring</h3>
+                    <p>Extracting data from arrays or objects easily.</p>
+                    <div class="example-box">
+const user = { name: "John", age: 30 };
+
+// Extracting 'name' into a variable
+const { name, age } = user; 
+console.log(name); // "John"
+                    </div>
+
+                    <h3>D. Template Literals</h3>
+                    <p>Embedding variables in strings using backticks.</p>
+                    <div class="example-box">
+const item = "Apple";
+const price = 2;
+console.log(\`The price of \${item} is $\${price}\`);
+                    </div>
+                `,
+                question: "What symbol is used for Template Literals in JavaScript?",
+                type: "choice",
+                options: ["' (Single Quote)", "\" (Double Quote)", "` (Backtick)", ". (Dot)"],
+                answer: 2
+            },
+            {
+                id: "fetch",
+                title: "Fetch & Promises (APIs)",
+                difficulty: "Advanced",
+                explanation: `
+                    <h1>6. Fetch, Promises & Complex APIs</h1>
+                    <p>Modern apps don't store all data locally; they fetch it from servers. This process is asynchronous (it takes time).</p>
+
+                    <h3>A. Promises</h3>
+                    <p>A Promise represents a value that doesn't exist yet but will in the future.</p>
+                    <div class="example-box">
+const myPromise = new Promise((resolve, reject) => {
+  let success = true;
+  if(success) resolve("Data Loaded");
+  else reject("Error");
+});
+
+myPromise.then(data => console.log(data));
+                    </div>
+
+                    <h3>B. The Fetch API</h3>
+                    <p>Getting data from a URL.</p>
+                    <div class="example-box">
+fetch('https://api.example.com/users')
+  .then(response => response.json()) // Convert text to JSON
+  .then(data => console.log(data))   // Use data
+  .catch(error => console.error(error));
+                    </div>
+
+                    <h3>C. Async / Await</h3>
+                    <p>Syntactic sugar to make asynchronous code look synchronous (easier to read).</p>
+                    <div class="example-box">
+async function getData() {
+  try {
+    const response = await fetch('https://api.example.com/data');
+    const data = await response.json();
+    console.log(data);
+  } catch (err) {
+    console.log("Failed to fetch", err);
+  }
+}
+                    </div>
+                `,
+                question: "Which keyword waits for a Promise to resolve inside an async function?",
+                type: "choice",
+                options: ["wait", "await", "then", "stop"],
+                answer: 1
+            },
+            {
+                id: "git",
+                title: "Terminal & Git",
+                difficulty: "Intermediate",
+                explanation: `
+                    <h1>7. Terminal & Git Version Control</h1>
+                    <p>Professional developers use the Command Line Interface (CLI) and Git to manage code history and collaboration.</p>
+        
+                    <h3>A. Essential Terminal Commands</h3>
+                    <ul>
+                        <li><code>ls</code> (or <code>dir</code> on Windows): List files in current folder.</li>
+                        <li><code>cd foldername</code>: Change Directory (open a folder).</li>
+                        <li><code>cd ..</code>: Go back up one folder level.</li>
+                        <li><code>mkdir name</code>: Make Directory (create new folder).</li>
+                        <li><code>touch file.js</code>: Create a new file.</li>
+                    </ul>
+
+                    <h3>B. Git Workflow</h3>
+                    <p>Git creates "save points" for your project.</p>
+                    <div class="example-box">
+# 1. Initialize Git in a folder
+git init
+
+# 2. Check what files changed
+git status
+
+# 3. Stage changes (Prepare to save)
+git add . 
+
+# 4. Commit changes (Save with message)
+git commit -m "Added login feature"
+
+# 5. Connect to Cloud (GitHub)
+git remote add origin https://github.com/user/repo.git
+
+# 6. Upload
+git push -u origin main
+                    </div>
+
+                    <h3>C. Branching</h3>
+                    <p>Working on a feature without breaking the main code.</p>
+                    <div class="example-box">
+git checkout -b new-feature-branch
+# ... make changes ...
+git commit -m "Finished feature"
+git checkout main
+git merge new-feature-branch
+                    </div>
+                `,
+                question: "Which command is used to permanently save your staged changes in the history?",
+                type: "choice",
+                options: ["git save", "git commit", "git push", "git init"],
+                answer: 1
+            },
+            {
+                id: "node",
+                title: "Node.js (Backend)",
+                difficulty: "Expert",
+                explanation: `
+                    <h1>8. Node.js</h1>
+                    <p>Node.js allows you to run JavaScript outside the browser (on the server). It is the backbone of the "MERN" stack.</p>
+
+                    <h3>A. Modules (CommonJS)</h3>
+                    <p>Splitting code into files.</p>
+                    <div class="example-box">
+// math.js
+function add(a, b) { return a + b; }
+module.exports = add;
+
+// app.js
+const add = require('./math');
+console.log(add(2, 2));
+                    </div>
+
+                    <h3>B. Creating a Basic Server</h3>
+                    <p>Handling HTTP requests without a framework.</p>
+                    <div class="example-box">
+const http = require('http');
+
+const server = http.createServer((req, res) => {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'text/plain');
+  res.end('Hello from Node Server!');
+});
+
+server.listen(3000, () => {
+  console.log('Server running on port 3000');
+});
+                    </div>
+
+                    <h3>C. NPM (Node Package Manager)</h3>
+                    <p>Installing tools others have written (like Express).</p>
+                    <div class="example-box">
+# Initialize project
+npm init -y
+
+# Install a package
+npm install express
+                    </div>
+                `,
+                question: "What command is used to include an external module in Node.js?",
+                type: "choice",
+                options: ["import", "include", "require", "fetch"],
+                answer: 2
+            },
+            {
+                id: "db",
+                title: "Databases (SQL & NoSQL)",
+                difficulty: "Expert",
+                explanation: `
+                    <h1>9. Databases</h1>
+                    <p>Where your application stores data permanently.</p>
+
+                    <h3>A. SQL (Relational) - e.g., PostgreSQL</h3>
+                    <p>Data is stored in strict Tables with rows and columns.</p>
+                    <div class="example-box">
+-- Create Table
+CREATE TABLE users (
+  id INT PRIMARY KEY,
+  name VARCHAR(50),
+  email VARCHAR(50)
+);
+
+-- Find Data
+SELECT * FROM users WHERE name = 'Alice';
+                    </div>
+
+                    <h3>B. NoSQL (Non-Relational) - e.g., MongoDB</h3>
+                    <p>Data is stored in flexible JSON-like documents. No strict schema required.</p>
+                    <div class="example-box">
+// MongoDB Document structure
+{
+  "_id": "507f1f77bcf86cd799439011",
+  "name": "Alice",
+  "email": "alice@example.com",
+  "hobbies": ["Coding", "Gaming"]
+}
+                    </div>
+
+                    <h3>C. Mongoose (Node + Mongo)</h3>
+                    <div class="example-box">
+// Defining a schema in Code
+const UserSchema = new mongoose.Schema({
+  name: String,
+  age: Number
+});
+const User = mongoose.model('User', UserSchema);
+                    </div>
+                `,
+                question: "Which type of database stores data in Tables, Rows, and Columns?",
+                type: "choice",
+                options: ["NoSQL", "SQL", "JSON", "Mongo"],
+                answer: 1
+            },
+            {
+                id: "ts",
+                title: "TypeScript",
+                difficulty: "Expert",
+                explanation: `
+                    <h1>10. TypeScript</h1>
+                    <p>TypeScript is JavaScript with "Types". It prevents bugs by ensuring you don't pass text into a math function.</p>
+
+                    <h3>A. Basic Types</h3>
+                    <div class="example-box">
+let score: number = 10;
+let username: string = "Dev";
+let isActive: boolean = true;
+let tags: string[] = ["general", "news"];
+                    </div>
+
+                    <h3>B. Interfaces</h3>
+                    <p>Defining the shape of an object.</p>
+                    <div class="example-box">
+interface User {
+  id: number;
+  name: string;
+  email?: string; // Optional field
+}
+
+const myUser: User = {
+  id: 1,
+  name: "Sarah"
+};
+                    </div>
+
+                    <h3>C. Function Types</h3>
+                    <p>Defining what goes in and what comes out.</p>
+                    <div class="example-box">
+function add(x: number, y: number): number {
+  return x + y;
+}
+                    </div>
+                `,
+                question: "In TypeScript, how do you define a variable 'count' that must be a number?",
+                type: "code",
+                check: (val) => val.includes("let count: number") || val.includes("const count: number") || val.includes("var count: number")
+            },
+            {
+                id: "react",
+                title: "React.js",
+                difficulty: "Expert",
+                explanation: `
+                    <h1>11. React.js</h1>
+                    <p>A library for building User Interfaces using "Components" - reusable chunks of UI.</p>
+
+                    <h3>A. Components (JSX)</h3>
+                    <p>Writing HTML inside JavaScript.</p>
+                    <div class="example-box">
+function WelcomeButton() {
+  return (
+    &lt;button className="btn"&gt;
+      Click Me
+    &lt;/button&gt;
+  );
+}
+                    </div>
+
+                    <h3>B. State (useState Hook)</h3>
+                    <p>How React remembers data.</p>
+                    <div class="example-box">
+import { useState } from 'react';
+
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;You clicked {count} times&lt;/p&gt;
+      &lt;button onClick={() => setCount(count + 1)}&gt;
+        Add
+      &lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+                    </div>
+
+                    <h3>C. Props</h3>
+                    <p>Passing data from parent to child.</p>
+                    <div class="example-box">
+function Greeting(props) {
+  return &lt;h1&gt;Hello, {props.name}&lt;/h1&gt;;
+}
+
+// Usage
+&lt;Greeting name="Alice" /&gt;
+                    </div>
+                `,
+                question: "Which Hook is used to store local state in a functional component?",
+                type: "choice",
+                options: ["useEffect", "useState", "useStore", "useData"],
+                answer: 1
+            },
+            {
+                id: "network",
+                title: "Networks & Internet",
+                difficulty: "Expert",
+                explanation: `
+                    <h1>12. Networks</h1>
+                    <p>Understanding how data travels across the web is vital for debugging.</p>
+
+                    <h3>A. HTTP Methods</h3>
+                    <ul>
+                        <li><b>GET:</b> Retrieve data (Loading a page).</li>
+                        <li><b>POST:</b> Send new data (Submitting a form).</li>
+                        <li><b>PUT:</b> Update existing data.</li>
+                        <li><b>DELETE:</b> Remove data.</li>
+                    </ul>
+
+                    <h3>B. Status Codes</h3>
+                    <ul>
+                        <li><b>200 OK:</b> Success.</li>
+                        <li><b>404 Not Found:</b> The resource doesn't exist.</li>
+                        <li><b>500 Server Error:</b> The backend crashed.</li>
+                        <li><b>403 Forbidden:</b> You don't have permission.</li>
+                    </ul>
+
+                    <h3>C. DNS (Domain Name System)</h3>
+                    <p>The "Phonebook" of the internet. It turns <code>google.com</code> into an IP address like <code>142.250.190.46</code>.</p>
+                `,
+                question: "Which HTTP method is typically used to retrieve data from a server?",
+                type: "choice",
+                options: ["POST", "DELETE", "GET", "PUT"],
+                answer: 2
+            },
+            {
+                id: "cloud",
+                title: "Cloud Computing",
+                difficulty: "Master",
+                explanation: `
+                    <h1>13. Cloud Computing</h1>
+                    <p>Using someone else's computers (AWS, Google, Azure) to run your app.</p>
+
+                    <h3>A. IaaS vs PaaS</h3>
+                    <ul>
+                        <li><b>IaaS (Infrastructure as a Service):</b> Renting raw virtual machines (e.g., AWS EC2). You manage the OS.</li>
+                        <li><b>PaaS (Platform as a Service):</b> You upload code, they handle the servers (e.g., Heroku, Vercel).</li>
+                    </ul>
+
+                    <h3>B. Serverless</h3>
+                    <p>Running code functions only when needed, without keeping a server running 24/7 (e.g., AWS Lambda).</p>
+
+                    <h3>C. Storage</h3>
+                    <p>Storing user uploads (images, videos) in "buckets" like AWS S3, separate from your database.</p>
+                `,
+                question: "Which service model involves renting raw virtual machines like AWS EC2?",
+                type: "choice",
+                options: ["SaaS", "PaaS", "IaaS", "Serverless"],
+                answer: 2
+            },
+            {
+                id: "infra",
+                title: "Infrastructure & CI/CD",
+                difficulty: "Master",
+                explanation: `
+                    <h1>14. Infrastructure & DevOps</h1>
+                    <p>Automating the deployment of code.</p>
+
+                    <h3>A. Docker (Containers)</h3>
+                    <p>Packaging your app with all its dependencies so it runs exactly the same on every machine.</p>
+                    <div class="example-box">
+# Dockerfile Example
+FROM node:14
+WORKDIR /app
+COPY package.json .
+RUN npm install
+COPY . .
+CMD ["node", "app.js"]
+                    </div>
+
+                    <h3>B. CI/CD (Continuous Integration/Deployment)</h3>
+                    <p>A pipeline that automatically tests your code and pushes it to the server when you commit.</p>
+                    <ul>
+                        <li><b>CI:</b> Running automated tests on every push.</li>
+                        <li><b>CD:</b> Deploying to production automatically if tests pass.</li>
+                    </ul>
+                `,
+                question: "What tool is primarily used for Containerization?",
+                type: "choice",
+                options: ["Git", "Docker", "React", "MongoDB"],
+                answer: 1
+            },
+            {
+                id: "security",
+                title: "Web Security",
+                difficulty: "Master",
+                explanation: `
+                    <h1>15. Security</h1>
+                    <p>Protecting users and data from hackers.</p>
+
+                    <h3>A. HTTPS / SSL</h3>
+                    <p>Encrypting the connection between browser and server so no one can intercept passwords.</p>
+
+                    <h3>B. Hashing Passwords</h3>
+                    <p>NEVER store passwords in plain text. Use hashing (e.g., Bcrypt).</p>
+                    <div class="example-box">
+// Good Practice (Node.js)
+const bcrypt = require('bcrypt');
+const hash = await bcrypt.hash(password, 10);
+// Store 'hash' in DB, not 'password'
+                    </div>
+
+                    <h3>C. Common Attacks (OWASP)</h3>
+                    <ul>
+                        <li><b>XSS (Cross-Site Scripting):</b> Injecting malicious JS into a page.</li>
+                        <li><b>SQL Injection:</b> Tricking the database into revealing data.</li>
+                        <li><b>CSRF:</b> Tricking a user into performing an action they didn't intend.</li>
+                    </ul>
+                `,
+                question: "What should you do before storing a user's password in a database?",
+                type: "choice",
+                options: ["Email it", "Hash it", "Compress it", "Print it"],
+                answer: 1
+            },
+            {
+                id: "ssr",
+                title: "SSR (Server Side Rendering)",
+                difficulty: "Master",
+                explanation: `
+                    <h1>16. SSR & Next.js</h1>
+                    <p>Advanced rendering techniques for performance and SEO.</p>
+
+                    <h3>A. CSR (Client Side Rendering)</h3>
+                    <p>Standard React. The browser downloads an empty HTML file and JS builds the page. Slow initial load, bad for SEO.</p>
+
+                    <h3>B. SSR (Server Side Rendering)</h3>
+                    <p>The server builds the HTML page completely <i>before</i> sending it to the browser. Fast and great for Google.</p>
+
+                    <h3>C. Next.js Example</h3>
+                    <p>A framework on top of React that handles SSR.</p>
+                    <div class="example-box">
+// Runs on Server before page loads
+export async function getServerSideProps() {
+  const res = await fetch('https://api.com/data');
+  const data = await res.json();
+
+  return { props: { data } };
+}
+
+export default function Page({ data }) {
+  return &lt;div&gt;Rendered on Server: {data.title}&lt;/div&gt;;
+}
+                    </div>
+                `,
+                question: "Which rendering method is generally better for SEO (Search Engine Optimization)?",
+                type: "choice",
+                options: ["Client Side Rendering (CSR)", "Server Side Rendering (SSR)", "FTP", "Local Rendering"],
+                answer: 1
             }
-        } else {
-            if (e.touches.length === 2) {
-                isPinching = true;
-                initialPinchDist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-                initialPinchZoom = camera.zoom;
-            } else {
-                isDragging = true;
-                crosshairPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            }
+        ];
+
+        let currentLevel = 0;
+
+        function showMainMenu() {
+            document.getElementById('main-menu').classList.remove('hidden');
+            document.getElementById('library-section').classList.add('hidden');
+            document.getElementById('game-section').classList.add('hidden');
+            document.getElementById('studio-section').classList.add('hidden');
+            document.getElementById('nav-controls').classList.add('hidden');
         }
-    }, { passive: false });
 
-    canvas.addEventListener('touchmove', e => {
-        e.preventDefault();
-        if (mode === 'draw') {
-            if (isPinching && e.touches.length === 2) {
-                crosshairPos.x = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                crosshairPos.y = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-            } else if (isDragging && currentStroke && e.touches.length === 1) {
-                let x = e.touches[0].clientX, y = e.touches[0].clientY;
-                if (crosshairActive) { x -= crosshairOffset.x; y -= crosshairOffset.y; }
-                currentStroke.points.push({...screenToWorld(x, y), p: 0.5});
-            }
-        } else {
-            if (isPinching && e.touches.length === 2) {
-                const dist = Math.hypot(e.touches[0].clientX-e.touches[1].clientX, e.touches[0].clientY-e.touches[1].clientY);
-                const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
-                const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
-                applyZoom(initialPinchZoom * (dist / initialPinchDist) / camera.zoom, cx, cy);
-            } else if (isDragging) {
-                camera.x += (e.touches[0].clientX - crosshairPos.x);
-                camera.y += (e.touches[0].clientY - crosshairPos.y);
-                crosshairPos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-            }
+        function openLibrary(topicIndex = 0) {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-section').classList.add('hidden');
+            document.getElementById('studio-section').classList.add('hidden');
+            document.getElementById('library-section').classList.remove('hidden');
+            document.getElementById('nav-controls').classList.remove('hidden');
+            
+            renderLibraryNav(topicIndex);
+            renderLibraryContent(topicIndex);
         }
-    }, { passive: false });
 
-    canvas.addEventListener('touchend', e => {
-        if (mode === 'draw') {
-            if (isPinching && e.touches.length === 1) {
-                isPinching = false; isDragging = true;
-                crosshairOffset.x = e.touches[0].clientX - crosshairPos.x;
-                crosshairOffset.y = e.touches[0].clientY - crosshairPos.y;
-                startNewStroke(crosshairPos.x, crosshairPos.y);
-            } else if (e.touches.length === 0) {
-                isDragging = false; crosshairActive = false; currentStroke = null;
-            }
-        } else {
-            if (e.touches.length < 2) isPinching = false;
-            if (e.touches.length === 0) isDragging = false;
-        }
-    });
-
-    function applyZoom(factor, cx, cy) {
-        const world = screenToWorld(cx, cy);
-        camera.zoom *= factor;
-        camera.zoom = Math.max(0.00001, Math.min(10000, camera.zoom));
-        camera.x = cx - world.x * camera.zoom;
-        camera.y = cy - world.y * camera.zoom;
-        zoomDisplay.innerText = Math.round(camera.zoom * 100) + '%';
-    }
-
-    function drawPaths(tCtx, cam) {
-        strokes.forEach(s => {
-            if (!s.points.length) return;
-            tCtx.save();
-            tCtx.lineCap = 'round'; tCtx.lineJoin = 'round';
-            if (s.type === 'eraser') {
-                tCtx.globalCompositeOperation = 'destination-out';
-                tCtx.strokeStyle = 'white'; tCtx.globalAlpha = 1;
-            } else {
-                tCtx.globalCompositeOperation = 'source-over';
-                tCtx.strokeStyle = s.color; tCtx.fillStyle = s.color;
-                tCtx.globalAlpha = s.opacity;
-            }
-
-            // ENHANCED PRO DRAW TOOLS
-            if (s.type === 'brush') {
-                tCtx.shadowBlur = (s.size * cam.zoom) / 1.5; 
-                tCtx.shadowColor = s.color;
-                tCtx.globalAlpha *= 0.4;
-            } else if (s.type === 'pencil') {
-                tCtx.setLineDash([0.5 / cam.zoom, 2.5 / cam.zoom]); 
-                tCtx.globalAlpha *= 0.6;
-                tCtx.lineWidth = s.size * 0.8;
-            }
-
-            if (s.points.length === 1) {
-                const p = s.points[0];
-                tCtx.beginPath(); tCtx.arc(p.x, p.y, s.size/2, 0, Math.PI*2); tCtx.fill();
-            } else {
-                tCtx.beginPath(); tCtx.moveTo(s.points[0].x, s.points[0].y);
-                s.points.forEach(p => tCtx.lineTo(p.x, p.y));
-                tCtx.lineWidth = (s.type === 'pencil' ? s.size * 0.8 : s.size);
-                tCtx.stroke();
-            }
-            tCtx.restore();
-        });
-    }
-
-    function renderLoop() {
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        ctx.fillStyle = '#0a0a0a';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.save();
-        ctx.translate(camera.x, camera.y);
-        ctx.scale(camera.zoom, camera.zoom);
-        drawPaths(ctx, camera);
-        ctx.restore();
-        if (crosshairActive) {
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.strokeStyle = "#00ff66"; ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(crosshairPos.x - 40, crosshairPos.y); ctx.lineTo(crosshairPos.x + 40, crosshairPos.y);
-            ctx.moveTo(crosshairPos.x, crosshairPos.y - 40); ctx.lineTo(crosshairPos.x, crosshairPos.y + 40);
-            ctx.stroke();
-            ctx.beginPath(); ctx.arc(crosshairPos.x, crosshairPos.y, 15, 0, Math.PI * 2); ctx.stroke();
-        }
-        requestAnimationFrame(renderLoop);
-    }
-
-    function setMode(m) {
-        mode = m; isDragging = false; crosshairActive = false; currentStroke = null;
-        document.getElementById('btn-draw').className = m==='draw'?'tool-active':'';
-        document.getElementById('btn-pan').className = m==='pan'?'tool-active':'';
-    }
-
-    function clearCanvas() { if(confirm("Wipe the canvas?")) { strokes = []; camera = {x:0,y:0,zoom:1}; } }
-    function showExport() { document.getElementById('export-modal').style.display = 'block'; document.getElementById('export-modal-overlay').style.display = 'block'; }
-    
-    function hideExport() { 
-        document.getElementById('export-modal').style.display = 'none'; 
-        document.getElementById('gallery-modal').style.display = 'none';
-        document.getElementById('export-modal-overlay').style.display = 'none'; 
-    }
-
-    async function performExport() {
-        if (!strokes.length) return;
-        const format = document.getElementById('expFormat').value;
-        const bgChoice = document.getElementById('expBG').value;
-
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        strokes.forEach(s => s.points.forEach(p => {
-            minX = Math.min(minX, p.x); minY = Math.min(minY, p.y);
-            maxX = Math.max(maxX, p.x); maxY = Math.max(maxY, p.y);
-        }));
-        const pad = Math.max(maxX - minX, maxY - minY) * 0.05;
-        minX -= pad; minY -= pad; maxX += pad; maxY += pad;
-        const worldW = maxX - minX, worldH = maxY - minY;
-
-        let finalData;
-
-        if (format === 'vector/svg') {
-            let svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${minX} ${minY} ${worldW} ${worldH}" width="${worldW}" height="${worldH}">`;
-            if (bgChoice !== 'transparent') svg += `<rect x="${minX}" y="${minY}" width="${worldW}" height="${worldH}" fill="${bgChoice}"/>`;
-            svg += `<defs><filter id="brushBlur"><feGaussianBlur stdDeviation="3" /></filter></defs>`;
-            strokes.forEach(s => {
-                if (s.type === 'eraser') return;
-                let pathData = `M ${s.points[0].x} ${s.points[0].y} `;
-                s.points.forEach((p, i) => { if(i>0) pathData += `L ${p.x} ${p.y} `; });
-                let style = `fill="none" stroke="${s.color}" stroke-width="${s.size}" stroke-linecap="round" stroke-linejoin="round" opacity="${s.opacity}"`;
-                if (s.type === 'pencil') style += ` stroke-dasharray="1,3"`;
-                if (s.type === 'brush') style += ` filter="url(#brushBlur)"`;
-                svg += `<path d="${pathData}" ${style} />`;
+        function renderLibraryNav(activeIdx) {
+            const nav = document.getElementById('lib-nav');
+            nav.innerHTML = '<h3 style="margin-bottom:15px">Topics</h3>';
+            academyData.forEach((item, idx) => {
+                const div = document.createElement('div');
+                div.className = `lib-nav-item ${idx === activeIdx ? 'active' : ''}`;
+                div.innerText = `${idx + 1}. ${item.title}`;
+                div.onclick = () => openLibrary(idx);
+                nav.appendChild(div);
             });
-            svg += `</svg>`;
-            finalData = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svg)));
-            const link = document.createElement('a');
-            link.download = `canvas-${Date.now()}.svg`;
-            link.href = finalData;
-            link.click();
-        } else {
-            const width = parseInt(document.getElementById('expWidth').value);
-            const scale = width / worldW;
-            const height = worldH * scale;
-            const out = document.createElement('canvas');
-            out.width = width; out.height = height;
-            const octx = out.getContext('2d', {alpha: true});
-            if (bgChoice !== 'transparent') { octx.fillStyle = bgChoice; octx.fillRect(0,0,width,height); }
-            octx.save(); octx.scale(scale, scale); octx.translate(-minX, -minY);
-            drawPaths(octx, { zoom: scale });
-            octx.restore();
-            finalData = out.toDataURL(format);
-            const link = document.createElement('a');
-            link.download = `canvas-${Date.now()}.png`;
-            link.href = finalData;
-            link.click();
         }
 
-        try { await GalleryDB.save(finalData, format); } catch(e) { console.error(e); }
-        hideExport();
-    }
-</script>
+        function renderLibraryContent(idx) {
+            document.getElementById('lib-content').innerHTML = academyData[idx].explanation;
+        }
+
+        function startGame() {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('library-section').classList.add('hidden');
+            document.getElementById('studio-section').classList.add('hidden');
+            document.getElementById('game-section').classList.remove('hidden');
+            document.getElementById('nav-controls').classList.remove('hidden');
+            loadLevel();
+        }
+
+        function loadLevel() {
+            const level = academyData[currentLevel];
+            document.getElementById('mod-title').innerText = `LEVEL ${currentLevel + 1}: ${level.title}`;
+            document.getElementById('mod-progress').innerText = `${currentLevel + 1} / ${academyData.length}`;
+            document.getElementById('progress-bar').style.width = `${((currentLevel + 1) / academyData.length) * 100}%`;
+            document.getElementById('q-text').innerText = level.question;
+            document.getElementById('game-feedback').classList.add('hidden');
+
+            if (level.type === 'choice') {
+                document.getElementById('q-options').classList.remove('hidden');
+                document.getElementById('q-editor').classList.add('hidden');
+                renderOptions(level.options);
+            } else {
+                document.getElementById('q-options').classList.add('hidden');
+                document.getElementById('q-editor').classList.remove('hidden');
+                document.getElementById('code-input').value = '';
+            }
+        }
+
+        function renderOptions(opts) {
+            const container = document.getElementById('q-options');
+            container.innerHTML = '';
+            opts.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => checkChoice(idx);
+                container.appendChild(btn);
+            });
+        }
+
+        function checkChoice(idx) {
+            if (idx === academyData[currentLevel].answer) {
+                nextLevel();
+            } else {
+                showFeedback(false, "That's not quite right. Try reading the Study Guide for this topic!");
+            }
+        }
+
+        function validateCode() {
+            const val = document.getElementById('code-input').value;
+            if (academyData[currentLevel].check(val)) {
+                nextLevel();
+            } else {
+                showFeedback(false, "Code validation failed. Check your syntax or visit the Study Guide.");
+            }
+        }
+
+        function showFeedback(success, text) {
+            const el = document.getElementById('game-feedback');
+            el.innerText = text;
+            el.className = `feedback ${success ? 'success' : 'error'}`;
+            el.classList.remove('hidden');
+        }
+
+        function nextLevel() {
+            showFeedback(true, "Mastery Confirmed! Unlocking next level...");
+            setTimeout(() => {
+                currentLevel++;
+                if (currentLevel < academyData.length) {
+                    loadLevel();
+                } else {
+                    alert("CONGRATULATIONS! You have completed the entire roadmap!");
+                    showMainMenu();
+                    currentLevel = 0;
+                }
+            }, 1500);
+        }
+
+        function openStudio() {
+            document.getElementById('main-menu').classList.add('hidden');
+            document.getElementById('game-section').classList.add('hidden');
+            document.getElementById('library-section').classList.add('hidden');
+            document.getElementById('studio-section').classList.remove('hidden');
+            document.getElementById('nav-controls').classList.remove('hidden');
+            runStudioCode();
+        }
+
+        function runStudioCode() {
+            const html = document.getElementById('s-html').value;
+            const css = document.getElementById('s-css').value;
+            const js = document.getElementById('s-js').value;
+            const iframe = document.getElementById('studio-iframe');
+            const output = document.getElementById('console-output');
+            output.innerHTML = "";
+            const combinedCode = `
+                <html>
+                    <head><style>${css}</style></head>
+                    <body>
+                        ${html}
+                        <script>
+                            const originalLog = console.log;
+                            console.log = function(...args) {
+                                window.parent.postMessage({type: 'log', val: args.join(' ')}, '*');
+                                originalLog.apply(console, args);
+                            };
+                            window.onerror = function(msg) {
+                                window.parent.postMessage({type: 'error', val: msg}, '*');
+                            };
+                        <\/script>
+                        <script>${js}<\/script>
+                    </body>
+                </html>
+            `;
+            iframe.srcdoc = combinedCode;
+        }
+
+        /* HISTORY & HELPER FUNCTIONS */
+        // 1. Initialize History Storage
+        const editorHistory = {
+            's-html': [],
+            's-css': [],
+            's-js': []
+        };
+
+        // 2. Function to Save State (Limit 20)
+        function saveState(id) {
+            const el = document.getElementById(id);
+            const stack = editorHistory[id];
+            
+            // Don't save if it's the exact same as the last saved state
+            if (stack.length > 0 && stack[stack.length - 1] === el.value) return;
+
+            stack.push(el.value);
+            // If history exceeds 20, remove the oldest one
+            if (stack.length > 20) stack.shift(); 
+        }
+
+        // 3. Function to Perform Undo
+        function performUndo(id) {
+            const stack = editorHistory[id];
+            if (stack.length === 0) return; // Nothing to undo
+            
+            const previousValue = stack.pop();
+            document.getElementById(id).value = previousValue;
+        }
+
+        // 4. Updated Insert Function (Saves state before inserting)
+        function insertStudio(id, text) {
+            saveState(id); // Save checkpoint before modification
+            
+            const el = document.getElementById(id);
+            const start = el.selectionStart;
+            const end = el.selectionEnd;
+            const currentVal = el.value;
+            el.value = currentVal.substring(0, start) + text + currentVal.substring(end);
+            el.selectionStart = el.selectionEnd = start + text.length;
+            el.focus();
+        }
+
+        // 5. Auto-Save Listeners for Manual Typing
+        // We attach listeners to save history when user hits Space, Enter, or Backspace
+        setTimeout(() => {
+            ['s-html', 's-css', 's-js'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) {
+                    el.addEventListener('keydown', (e) => {
+                        // Create a history checkpoint on major key presses
+                        if (e.key === ' ' || e.key === 'Enter' || e.key === 'Backspace') {
+                            saveState(id);
+                        }
+                    });
+                }
+            });
+        }, 500); // Small delay to ensure elements exist
+
+        window.addEventListener('message', (e) => {
+            const output = document.getElementById('console-output');
+            const div = document.createElement('div');
+            if(e.data.type === 'log') {
+                div.className = 'console-log';
+                div.innerText = "> " + e.data.val;
+            } else if(e.data.type === 'error') {
+                div.className = 'console-error';
+                div.innerText = "❌ Error: " + e.data.val;
+                const tip = document.createElement('div');
+                tip.className = 'console-tip';
+                tip.innerText = getSmartTip(e.data.val);
+                div.appendChild(tip);
+            }
+            output.appendChild(div);
+        });
+
+        function getSmartTip(err) {
+            if(err.includes('unexpected token')) return "TIP: Check for a missing semicolon (;) or an unclosed brace {}.";
+            if(err.includes('not defined')) return "TIP: You are using a variable name that doesn't exist. Check your spelling!";
+            if(err.includes('assignment to constant')) return "TIP: You tried to change a 'const' variable. Use 'let' instead.";
+            return "TIP: Review the Study Library for the correct syntax rules.";
+        }
+
+        // SERVICE WORKER REGISTRATION
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(reg => {
+                    console.log('SW Registered');
+                }).catch(err => {
+                    console.log('SW Registration Failed', err);
+                });
+            });
+        }
+    </script>
 </body>
 </html>
