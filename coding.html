@@ -1,274 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>DevStudio Playground</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta charset="UTF-8">
+    <title>DevStudio Playground</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- iOS PWA Config -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-<!-- iOS PWA Config -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
 
-<script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
+    <style>
+        :root {
+            --bg: #05050a;
+            --panel-bg: rgba(25, 25, 45, 0.75);
+            --accent: #00f2ff;
+            --accent-grad: linear-gradient(135deg, #00f2ff, #7000ff);
+            --border: rgba(255, 255, 255, 0.1);
+        }
 
-<style>
-:root {
-  --bg: #080810;
-  --panel: rgba(30, 30, 50, 0.6);
-  --border: rgba(255, 255, 255, 0.1);
-  --text: #f0f0f7;
-  --accent: #00f2ff;
-  --accent-gradient: linear-gradient(135deg, #00f2ff, #7000ff);
-}
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            margin: 0;
+            height: 100vh;
+            background: var(--bg);
+            background-image: radial-gradient(circle at 50% -20%, #1e1e4a, transparent);
+            color: #f0f0f7;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
 
-body {
-  margin: 0;
-  height: 100vh;
-  background: var(--bg);
-  background-image: radial-gradient(circle at 50% -20%, #1e1e4a, transparent);
-  color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+        /* FIXED NOTCH BLEEDING */
+        header {
+            padding-top: calc(max(25px, env(safe-area-inset-top)));
+            padding-left: calc(env(safe-area-inset-left) + 20px);
+            padding-right: calc(env(safe-area-inset-right) + 20px);
+            padding-bottom: 15px;
+            background: rgba(10, 10, 20, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            z-index: 1000;
+        }
 
-header {
-  padding-top: calc(max(25px, env(safe-area-inset-top)));
-  padding-left: calc(env(safe-area-inset-left) + 20px);
-  padding-right: calc(env(safe-area-inset-right) + 20px);
-  padding-bottom: 15px;
-  background: rgba(10, 10, 20, 0.8);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid var(--border);
-  z-index: 1000;
-}
+        .brand { font-weight: 800; font-size: 1.2rem; background: var(--accent-grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-.brand { font-weight: 800; font-size: 1.2rem; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .btn {
+            background: var(--accent-grad); color: white; border: none; padding: 10px 18px; border-radius: 12px;
+            font-weight: 700; font-size: 14px; box-shadow: 0 4px 15px rgba(0, 242, 255, 0.2);
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-secondary { background: rgba(255, 255, 255, 0.1); box-shadow: none; border: 1px solid rgba(255,255,255,0.05); }
 
-button {
-  background: var(--accent-gradient);
-  color: white; border: none; padding: 10px 18px; border-radius: 12px;
-  font-weight: 700; font-size: 14px; box-shadow: 0 4px 15px rgba(0, 242, 255, 0.2);
-}
-button:active { transform: scale(0.95); }
-button.secondary { background: rgba(255, 255, 255, 0.1); box-shadow: none; }
+        main {
+            flex: 1; display: flex; flex-direction: column; padding: 15px;
+            padding-bottom: calc(env(safe-area-inset-bottom) + 20px); 
+            gap: 15px; overflow-y: auto; -webkit-overflow-scrolling: touch;
+        }
 
-main {
-  flex: 1; display: flex; flex-direction: column; padding: 15px;
-  padding-bottom: env(safe-area-inset-bottom); gap: 15px;
-  overflow-y: auto; -webkit-overflow-scrolling: touch;
-}
+        /* EDITOR PANEL STYLE */
+        .editor-window {
+            background: var(--panel-bg); border: 1px solid var(--border);
+            border-radius: 20px; display: flex; flex-direction: column;
+            overflow: hidden; backdrop-filter: blur(15px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
 
-.panel {
-  background: var(--panel); border: 1px solid var(--border);
-  border-radius: 20px; display: flex; flex-direction: column;
-  overflow: hidden; backdrop-filter: blur(10px);
-}
+        .editor-label {
+            padding: 12px 16px; background: rgba(255, 255, 255, 0.04);
+            font-size: 11px; font-weight: 800; text-transform: uppercase;
+            color: rgba(255,255,255,0.4); display: flex; justify-content: space-between;
+        }
 
-.panel-header {
-  padding: 12px 16px; background: rgba(255, 255, 255, 0.03);
-  font-size: 11px; font-weight: 800; text-transform: uppercase;
-  color: rgba(255,255,255,0.4); display: flex; justify-content: space-between;
-}
+        /* HELPER BAR */
+        .coding-helper-bar {
+            display: flex; background: rgba(0, 0, 0, 0.3);
+            padding: 8px; gap: 6px; border-bottom: 1px solid var(--border);
+            overflow-x: auto; scrollbar-width: none;
+        }
+        .coding-helper-bar::-webkit-scrollbar { display: none; }
 
-/* THE FIX: Solid container for the text field */
-.editor-container {
-  min-height: 250px;
-  background: #0c0c14;
-  cursor: text;
-  display: flex;
-  flex-direction: column;
-}
+        .helper-btn {
+            background: rgba(255,255,255,0.08); color: #fff; border: none;
+            padding: 10px 14px; border-radius: 8px; font-family: monospace;
+            font-weight: 600; font-size: 14px; min-width: 48px;
+        }
+        .helper-btn:active { background: var(--accent); color: #000; }
 
-/* Ensure the code library fills the space and is clickable */
-.cm-editor { flex: 1; height: 100%; font-size: 16px; outline: none !important; }
-.cm-scroller { overflow: auto; padding-bottom: 50px; }
-.cm-content { padding: 10px 0 !important; }
+        /* TEXTAREA INPUT */
+        .studio-textarea {
+            width: 100%; min-height: 250px; background: #0c0c14;
+            color: #d1d1e0; font-family: 'SF Mono', 'Menlo', monospace;
+            font-size: 16px; border: none; padding: 15px;
+            resize: none; outline: none; line-height: 1.5;
+        }
 
-.smart-bar {
-  display: flex; background: rgba(0, 0, 0, 0.4);
-  padding: 8px; gap: 6px; border-top: 1px solid var(--border);
-  overflow-x: auto; scrollbar-width: none;
-}
-.smart-bar::-webkit-scrollbar { display: none; }
+        /* PREVIEW AREA */
+        #preview-window { flex: 1; min-height: 400px; }
+        #preview-frame { width: 100%; flex: 1; background: white; border: none; border-radius: 0 0 20px 20px; }
 
-.helper-btn {
-  background: rgba(255,255,255,0.1); color: #fff; border: none;
-  padding: 10px 14px; border-radius: 8px; font-family: monospace;
-  font-weight: 600; font-size: 15px; min-width: 45px;
-}
-
-#preview-panel { flex: 1; min-height: 400px; }
-#preview { width: 100%; flex: 1; background: white; border: none; }
-
-#console { background: #000; color: #00ffcc; font-family: monospace; font-size: 12px; padding: 12px; height: 80px; overflow-y: auto; border-top: 1px solid #222; }
-#tutor { background: #0a1512; color: #2ee59d; font-size: 13px; padding: 12px; border-top: 1px solid rgba(46, 229, 157, 0.2); }
-</style>
+        #console { background: #000; color: #00ffcc; font-family: monospace; font-size: 12px; padding: 12px; height: 80px; overflow-y: auto; }
+        #tutor { background: #0a1512; color: #2ee59d; font-size: 13px; padding: 12px; border-top: 1px solid rgba(46, 229, 157, 0.2); }
+    </style>
 </head>
 
 <body>
 
 <header>
-  <div class="brand">DevStudio</div>
-  <div class="header-btns">
-    <button class="secondary" id="addPanelBtn">＋ Panel</button>
-    <button id="runBtn">▶ Run</button>
-  </div>
+    <div class="brand">DevStudio</div>
+    <div class="header-btns">
+        <button class="btn btn-secondary" onclick="addNewPanel()">＋ Panel</button>
+        <button class="btn" onclick="runProject()">▶ Run</button>
+    </div>
 </header>
 
-<main>
-  <div id="editor-area" style="display:flex; flex-direction:column; gap:15px;"></div>
-
-  <div class="panel" id="preview-panel">
-    <div class="panel-header">Live Preview</div>
-    <iframe id="preview" sandbox="allow-scripts allow-same-origin"></iframe>
-    <div id="console">System Ready...</div>
-    <div id="tutor">AI Tutor: Tap the editor above to start coding.</div>
-  </div>
+<main id="editor-area">
+    <!-- Panels will be injected here -->
+    
+    <div class="editor-window" id="preview-window">
+        <div class="editor-label">Live Preview</div>
+        <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
+        <div id="console">System Ready...</div>
+        <div id="tutor">AI Tutor: Add a code panel to start.</div>
+    </div>
 </main>
 
-<!-- EVERYTHING IS NOW IN ONE MODULE TO FIX LOADING TIMING -->
-<script type="module">
-import { EditorState } from "https://cdn.jsdelivr.net/npm/@codemirror/state@6.4.1/dist/index.js";
-import { EditorView, basicSetup } from "https://cdn.jsdelivr.net/npm/@codemirror/view@6.28.3/dist/index.js";
-import { undo } from "https://cdn.jsdelivr.net/npm/@codemirror/commands@6.3.3/dist/index.js";
-import { javascript } from "https://cdn.jsdelivr.net/npm/@codemirror/lang-javascript@6.2.2/dist/index.js";
-import { html } from "https://cdn.jsdelivr.net/npm/@codemirror/lang-html@6.4.7/dist/index.js";
-import { css } from "https://cdn.jsdelivr.net/npm/@codemirror/lang-css@6.2.1/dist/index.js";
-import { python } from "https://cdn.jsdelivr.net/npm/@codemirror/lang-python@6.2.1/dist/index.js";
-import { oneDark } from "https://cdn.jsdelivr.net/npm/@codemirror/theme-one-dark@6.1.2/dist/index.js";
+<script>
+    let pyodide, pyReady = false;
+    let panelCount = 0;
 
-let pyodide, pyReady = false;
-let editors = [];
+    // Load Python
+    (async () => { 
+        try { pyodide = await loadPyodide(); pyReady = true; } catch(e) {} 
+    })();
 
-// Initialize Python
-(async () => { 
-    try { pyodide = await loadPyodide(); pyReady = true; } catch(e) { console.error(e); } 
-})();
+    function addNewPanel(content = "") {
+        panelCount++;
+        const panelId = `s-editor-${panelCount}`;
+        
+        const panelHtml = `
+            <div class="editor-window" id="wrapper-${panelId}">
+                <div class="editor-label">
+                    <span>Editor ${panelCount}</span>
+                    <span onclick="document.getElementById('wrapper-${panelId}').remove()" style="opacity:0.5; font-size:18px">✕</span>
+                </div>
+                <div class="coding-helper-bar">
+                    <button class="helper-btn" onclick="performUndo('${panelId}')" style="color: #f87171;">UNDO</button>
+                    <button class="helper-btn" onclick="insertStudio('${panelId}', '  ')">TAB</button>
+                    <button class="helper-btn" onclick="insertStudio('${panelId}', '<')">&lt;</button>
+                    <button class="helper-btn" onclick="insertStudio('${panelId}', '>')">&gt;</button>
+                    <button class="helper-btn" onclick="insertStudio('${panelId}', '/')">/</button>
+                    <button class="helper-btn" onclick="insertStudio('${panelId}', '{')">{</button>
+                    <button class="helper-btn" onclick="insertStudio('${panelId}', '}')">}</button>
+                    <button class="helper-btn" onclick="insertStudio('${panelId}', '\u0022')">"</button>
+                    <button class="helper-btn" onclick="insertStudio('${panelId}', '=')">=</button>
+                </div>
+                <textarea id="${panelId}" class="studio-textarea" spellcheck="false" placeholder="/* Write code here */">${content || '<h1>Hello World</h1>'}</textarea>
+            </div>
+        `;
 
-function addPanel(content = "") {
-  const panel = document.createElement("div");
-  panel.className = "panel";
-  panel.innerHTML = `
-    <div class="panel-header">
-      <span>Code Editor</span>
-      <span class="close-btn" style="font-size: 18px; opacity: 0.5">✕</span>
-    </div>
-    <div class="editor-container"></div>
-    <div class="smart-bar">
-      <button class="h-btn" data-cmd="undo">↶</button>
-      <button class="h-btn" data-char="\t">TAB</button>
-      <button class="h-btn" data-char="{">{</button>
-      <button class="h-btn" data-char="}">}</button>
-      <button class="h-btn" data-char="[">[</button>
-      <button class="h-btn" data-char="]">]</button>
-      <button class="h-btn" data-char="<">&lt;</button>
-      <button class="h-btn" data-char=">">&gt;</button>
-      <button class="h-btn" data-char="'">'</button>
-      <button class="h-btn" data-char="=">=</button>
-      <button class="h-btn" data-char=";">;</button>
-    </div>
-  `;
-
-  document.getElementById("editor-area").appendChild(panel);
-  const container = panel.querySelector(".editor-container");
-
-  const view = new EditorView({
-    state: EditorState.create({
-      doc: content || "<!-- Tap here to write HTML -->\n<h1>Hello</h1>",
-      extensions: [
-        basicSetup,
-        html(), // Defaulting to HTML for the first panel
-        oneDark,
-        EditorView.updateListener.of(update => { if(update.docChanged) autosave(); })
-      ]
-    }),
-    parent: container
-  });
-
-  // iOS FOCUS FIX: If user taps the container anywhere, force the editor to focus
-  container.addEventListener('click', () => {
-    view.focus();
-  });
-
-  // Close Logic
-  panel.querySelector(".close-btn").onclick = () => {
-    editors = editors.filter(e => e !== view);
-    panel.remove();
-    autosave();
-  };
-
-  // Helper Bar Logic
-  panel.querySelector(".smart-bar").onclick = (e) => {
-    const btn = e.target.closest(".h-btn");
-    if(!btn) return;
-    
-    if(btn.dataset.cmd === "undo") {
-        undo(view);
-    } else if(btn.dataset.char) {
-        const text = btn.dataset.char;
-        const range = view.state.selection.main;
-        view.dispatch({
-            changes: { from: range.from, to: range.to, insert: text },
-            selection: { anchor: range.from + text.length },
-            scrollIntoView: true
-        });
-        view.focus();
+        // Insert before the preview window
+        const previewWin = document.getElementById('preview-window');
+        previewWin.insertAdjacentHTML('beforebegin', panelHtml);
     }
-  };
 
-  editors.push(view);
-}
+    function insertStudio(id, text) {
+        const textarea = document.getElementById(id);
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const val = textarea.value;
+        textarea.value = val.substring(0, start) + text + val.substring(end);
+        textarea.selectionStart = textarea.selectionEnd = start + text.length;
+        textarea.focus();
+    }
 
-function run() {
-  let htmlCode = "", cssCode = "", jsCode = "", pyCode = "";
-  
-  editors.forEach(view => {
-    const code = view.state.doc.toString();
-    // Simple language detection based on content
-    if(code.includes("<") && code.includes(">")) htmlCode += code;
-    else if(code.includes("{") && code.includes(":")) cssCode += code;
-    else if(code.includes("def ") || code.includes("print(")) pyCode += code;
-    else jsCode += code;
-  });
+    function performUndo(id) {
+        const textarea = document.getElementById(id);
+        textarea.focus();
+        document.execCommand('undo', false, null);
+    }
 
-  const consoleEl = document.getElementById("console");
-  const iframe = document.getElementById("preview");
-  
-  if(pyCode.trim()) {
-    if(!pyReady) { consoleEl.textContent = "Python loading..."; return; }
-    pyodide.runPythonAsync(pyCode)
-      .then(res => consoleEl.textContent = res || "Execution finished.")
-      .catch(err => consoleEl.textContent = err);
-  }
+    async function runProject() {
+        const textareas = document.querySelectorAll('.studio-textarea');
+        let html = "", css = "", js = "", py = "";
 
-  const doc = iframe.contentDocument;
-  doc.open();
-  doc.write(`<!DOCTYPE html><html><head><style>${cssCode}</style></head><body>${htmlCode}<script>${jsCode}<\/script></body></html>`);
-  doc.close();
-}
+        textareas.forEach(t => {
+            const code = t.value;
+            // Simple logic to detect where code belongs
+            if(code.includes('<') && code.includes('>')) html += code;
+            else if(code.includes('{') && code.includes(':')) css += code;
+            else if(code.includes('def ') || code.includes('print(')) py += code;
+            else js += code;
+        });
 
-function autosave() {
-  const data = editors.map(e => e.state.doc.toString());
-  localStorage.setItem("devstudio_v2", JSON.stringify(data));
-}
+        const consoleEl = document.getElementById("console");
+        if(py.trim()) {
+            if(!pyReady) { consoleEl.innerText = "Python loading..."; return; }
+            try { 
+                const res = await pyodide.runPythonAsync(py);
+                consoleEl.innerText = res || "Python executed.";
+            } catch(e) { consoleEl.innerText = e; }
+        }
 
-// Global buttons
-document.getElementById("addPanelBtn").onclick = () => addPanel();
-document.getElementById("runBtn").onclick = run;
+        const iframe = document.getElementById("preview-frame");
+        const doc = iframe.contentDocument;
+        doc.open();
+        doc.write(`<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}<script>${js}<\/script></body></html>`);
+        doc.close();
+    }
 
-// Init
-const saved = localStorage.getItem("devstudio_v2");
-if(saved) JSON.parse(saved).forEach(c => addPanel(c));
-else addPanel();
-
+    // Initialize with one panel
+    addNewPanel();
 </script>
 
 </body>
