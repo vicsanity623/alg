@@ -3,9 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <title>DevStudio Playground</title>
+<!-- viewport-fit=cover is crucial for the notch fix -->
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 
-<!-- PWA / iOS Tags -->
+<!-- iOS PWA Config -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
@@ -26,13 +27,12 @@ window.CM = { EditorState, EditorView, basicSetup, javascript, html, css, python
 
 <style>
 :root {
-  --bg: #05050a;
-  --panel: rgba(25, 25, 45, 0.7);
-  --border: rgba(255, 255, 255, 0.1);
+  --bg: #080810;
+  --panel: rgba(30, 30, 50, 0.6);
+  --border: rgba(255, 255, 255, 0.08);
   --text: #f0f0f7;
   --accent: #00f2ff;
   --accent-gradient: linear-gradient(135deg, #00f2ff, #7000ff);
-  --safe-top: env(safe-area-inset-top);
 }
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -41,165 +41,153 @@ body {
   margin: 0;
   height: 100vh;
   background: var(--bg);
-  background-image: radial-gradient(circle at top right, #1a1a3a, transparent);
+  background-image: radial-gradient(circle at 50% -20%, #1e1e4a, transparent);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
+/* FIXED HEADER FOR iOS STANDALONE MODE */
 header {
-  padding: calc(var(--safe-top) + 10px) 16px 12px 16px;
-  background: rgba(10, 10, 20, 0.8);
-  backdrop-filter: blur(10px);
+  /* This ensures the title and buttons stay below the clock/notch */
+  padding-top: calc(max(20px, env(safe-area-inset-top)) + 10px);
+  padding-left: calc(env(safe-area-inset-left) + 20px);
+  padding-right: calc(env(safe-area-inset-right) + 20px);
+  padding-bottom: 15px;
+  
+  background: rgba(10, 10, 20, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border);
-  z-index: 100;
+  z-index: 1000;
 }
 
-.brand { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.5px; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.brand { 
+  font-weight: 800; 
+  font-size: 1.2rem; 
+  letter-spacing: -0.8px; 
+  background: var(--accent-gradient); 
+  -webkit-background-clip: text; 
+  -webkit-text-fill-color: transparent; 
+}
 
-.header-btns { display: flex; gap: 8px; }
+.header-btns { display: flex; gap: 10px; }
 
 button {
   background: var(--accent-gradient);
   color: white;
   border: none;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 13px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 14px;
   box-shadow: 0 4px 15px rgba(0, 242, 255, 0.2);
-  transition: transform 0.1s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
-button:active { transform: scale(0.95); }
+button:active { transform: scale(0.92); opacity: 0.8; }
 
 button.secondary {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
   box-shadow: none;
-  backdrop-filter: blur(5px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 12px;
-  gap: 12px;
+  padding: 15px;
+  padding-bottom: env(safe-area-inset-bottom);
+  gap: 15px;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 20px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
 .panel-header {
-  padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.05);
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
+  letter-spacing: 1px;
   text-transform: uppercase;
-  color: #888;
+  color: rgba(255,255,255,0.4);
   display: flex;
   justify-content: space-between;
 }
 
-/* FIX: Editor height and touch area */
 .editor-container {
-  min-height: 200px;
+  min-height: 240px;
   position: relative;
   background: transparent;
 }
 
-.cm-editor {
-  height: 100%;
-  font-size: 14px;
-}
+/* Ensure editor text isn't cramped */
+.cm-editor { height: 100%; font-size: 15px; padding: 5px 0; }
 .cm-scroller { overflow: auto; }
 
-/* Smart Helper Bar */
+/* Smart Helper Bar for iOS Keyboard */
 .smart-bar {
   display: flex;
-  background: #1a1a2e;
-  padding: 6px;
-  gap: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px;
+  gap: 6px;
   border-top: 1px solid var(--border);
   overflow-x: auto;
   white-space: nowrap;
-  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
 }
-
 .smart-bar::-webkit-scrollbar { display: none; }
 
 .helper-btn {
-  background: #2a2a40;
-  color: #aaa;
+  background: rgba(255,255,255,0.1);
+  color: #fff;
   border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-family: monospace;
-  font-weight: bold;
-  font-size: 14px;
-  min-width: 40px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 600;
+  font-size: 15px;
+  min-width: 44px;
 }
 .helper-btn:active { background: var(--accent); color: #000; }
 
-#preview-panel { flex: 1; min-height: 300px; }
-
-#preview {
-  width: 100%;
-  flex: 1;
-  background: white;
-  border: none;
-}
+#preview-panel { flex: 1; min-height: 400px; }
+#preview { width: 100%; flex: 1; background: white; border: none; border-radius: 0 0 0 0; }
 
 #console {
   background: #000;
   color: #00ffcc;
-  font-family: 'Courier New', monospace;
-  font-size: 11px;
-  padding: 10px;
-  height: 80px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  padding: 12px;
+  height: 100px;
   overflow-y: auto;
   border-top: 1px solid #222;
 }
 
 #tutor {
-  background: #0c1b17;
+  background: #0a1512;
   color: #2ee59d;
-  font-size: 12px;
-  padding: 10px 15px;
-  border-top: 1px solid #1e3f34;
-}
-
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,0.8);
-  backdrop-filter: blur(10px);
-  display: none;
-  z-index: 1000;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.overlay div {
-  background: #151525;
-  padding: 25px;
-  border-radius: 20px;
-  border: 1px solid var(--border);
-  text-align: center;
+  font-size: 13px;
+  padding: 12px 18px;
+  border-top: 1px solid rgba(46, 229, 157, 0.2);
 }
 </style>
 </head>
@@ -215,29 +203,20 @@ main {
 </header>
 
 <main id="main-content">
-  <div id="editor-area" style="display:flex; flex-direction:column; gap:12px;"></div>
+  <div id="editor-area" style="display:flex; flex-direction:column; gap:15px;"></div>
 
   <div class="panel" id="preview-panel">
     <div class="panel-header">Live Preview</div>
     <iframe id="preview" sandbox="allow-scripts allow-same-origin"></iframe>
     <div id="console">System Ready...</div>
-    <div id="tutor">AI Tutor: Create an HTML tag to begin.</div>
+    <div id="tutor">AI Tutor: Edit the code above to see live changes.</div>
   </div>
 </main>
-
-<div class="overlay" id="curriculum">
-  <div>
-    <h2>Welcome</h2>
-    <p>Use the helper bar above the keyboard for quick coding on mobile.</p>
-    <button onclick="toggleCurriculum()">Start Coding</button>
-  </div>
-</div>
 
 <script>
 let pyodide, pyReady=false;
 let editors = [];
 
-// Load Python in background
 (async()=>{ try { pyodide = await loadPyodide(); pyReady = true; } catch(e){} })();
 
 function insertText(view, text) {
@@ -254,25 +233,24 @@ function insertText(view, text) {
 function addPanel(content = "") {
   const panel = document.createElement("div");
   panel.className = "panel";
-  
-  // HTML structure for panel with Helper Bar
   panel.innerHTML = `
     <div class="panel-header">
-      <span>Editor</span>
-      <span style="color:var(--accent)" onclick="this.closest('.panel').remove()">✕</span>
+      <span>Code Editor</span>
+      <span style="font-size: 18px; opacity: 0.5" onclick="removePanel(this)">✕</span>
     </div>
     <div class="editor-container"></div>
     <div class="smart-bar">
       <button class="helper-btn" data-cmd="undo">↶</button>
       <button class="helper-btn" data-char="\t">TAB</button>
-      <button class="helper-btn" data-char="{"> { </button>
-      <button class="helper-btn" data-char="}"> } </button>
-      <button class="helper-btn" data-char="["> [ </button>
-      <button class="helper-btn" data-char="]"> ] </button>
-      <button class="helper-btn" data-char="<"> < </button>
-      <button class="helper-btn" data-char=">"> > </button>
-      <button class="helper-btn" data-char="'"> ' </button>
-      <button class="helper-btn" data-char="="> = </button>
+      <button class="helper-btn" data-char="{">{</button>
+      <button class="helper-btn" data-char="}">}</button>
+      <button class="helper-btn" data-char="[">[</button>
+      <button class="helper-btn" data-char="]">]</button>
+      <button class="helper-btn" data-char="<">&lt;</button>
+      <button class="helper-btn" data-char=">">&gt;</button>
+      <button class="helper-btn" data-char="'">'</button>
+      <button class="helper-btn" data-char="=">=</button>
+      <button class="helper-btn" data-char=";">;</button>
     </div>
   `;
 
@@ -281,7 +259,7 @@ function addPanel(content = "") {
 
   const view = new CM.EditorView({
     state: CM.EditorState.create({
-      doc: content || "<h1>Hello World</h1>",
+      doc: content || "<h1>Hello World</h1>\n<p>Tap here to code...</p>",
       extensions: [
         CM.basicSetup,
         CM.EditorView.updateListener.of(update => {
@@ -292,24 +270,24 @@ function addPanel(content = "") {
     parent: container
   });
 
-  // Handle Toolbar Clicks
   panel.querySelector(".smart-bar").addEventListener("click", (e) => {
     const btn = e.target.closest(".helper-btn");
     if(!btn) return;
-    
-    if(btn.dataset.cmd === "undo") {
-      CM.undo(view);
-    } else if(btn.dataset.char) {
-      insertText(view, btn.dataset.char);
-    }
+    if(btn.dataset.cmd === "undo") CM.undo(view);
+    else if(btn.dataset.char) insertText(view, btn.dataset.char);
   });
 
   editors.push(view);
 }
 
+function removePanel(btn) {
+  const panel = btn.closest('.panel');
+  // Logic to remove from editors array
+  panel.remove();
+}
+
 function run() {
   let html = "", css = "", js = "", py = "";
-  
   editors.forEach(view => {
     const code = view.state.doc.toString();
     if(code.includes("<") && code.includes(">")) html += code;
@@ -324,22 +302,13 @@ function run() {
   if(py.trim()) {
     if(!pyReady) { consoleEl.textContent = "Python is initializing..."; return; }
     pyodide.runPythonAsync(py)
-      .then(res => consoleEl.textContent = res || "Python executed successfully")
+      .then(res => consoleEl.textContent = res || "Python execution complete.")
       .catch(err => consoleEl.textContent = err);
   }
 
   const doc = iframe.contentDocument;
   doc.open();
-  doc.write(`
-    <!DOCTYPE html>
-    <html>
-      <head><style>${css}</style></head>
-      <body>
-        ${html}
-        <script>${js}<\/script>
-      </body>
-    </html>
-  `);
+  doc.write(`<!DOCTYPE html><html><head><style>${css}</style></head><body>${html}<script>${js}<\/script></body></html>`);
   doc.close();
 }
 
@@ -350,19 +319,10 @@ function autosave() {
 
 function restore() {
   const saved = localStorage.getItem("devstudio_data");
-  if(saved) {
-    JSON.parse(saved).forEach(content => addPanel(content));
-  } else {
-    addPanel();
-  }
+  if(saved) JSON.parse(saved).forEach(content => addPanel(content));
+  else addPanel();
 }
 
-function toggleCurriculum() {
-  const o = document.getElementById("curriculum");
-  o.style.display = o.style.display === "flex" ? "none" : "flex";
-}
-
-// Initial Call
 restore();
 </script>
 
