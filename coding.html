@@ -15,6 +15,18 @@
 <!-- Pyodide -->
 <script src="https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.js"></script>
 
+<!-- CodeMirror 6 -->
+<script type="module">
+import { EditorState } from "https://cdn.jsdelivr.net/npm/@codemirror/state@6.4.1/dist/index.js";
+import { EditorView, basicSetup } from "https://cdn.jsdelivr.net/npm/@codemirror/view@6.28.3/dist/index.js";
+import { javascript } from "https://cdn.jsdelivr.net/npm/@codemirror/lang-javascript@6.2.2/dist/index.js";
+import { html } from "https://cdn.jsdelivr.net/npm/@codemirror/lang-html@6.4.7/dist/index.js";
+import { css } from "https://cdn.jsdelivr.net/npm/@codemirror/lang-css@6.2.1/dist/index.js";
+import { python } from "https://cdn.jsdelivr.net/npm/@codemirror/lang-python@6.2.1/dist/index.js";
+
+window.CM = { EditorState, EditorView, basicSetup, javascript, html, css, python };
+</script>
+
 <style>
 :root {
   --bg: #0a0a0f;
@@ -22,6 +34,7 @@
   --border: #2a2a40;
   --text: #e6e6f0;
   --accent: #7aa2ff;
+  --hint: #2ee59d;
 }
 
 * { box-sizing: border-box; }
@@ -37,18 +50,12 @@ body {
 }
 
 header {
-  padding: 14px 18px;
+  padding: 12px 16px;
   background: linear-gradient(90deg, #14142b, #0f1224);
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border);
-}
-
-header h1 {
-  font-size: 16px;
-  margin: 0;
-  font-weight: 600;
 }
 
 button {
@@ -70,14 +77,8 @@ main {
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding: 12px;
-}
-
-#editor-area {
-  display: flex;
-  flex-direction: column;
   gap: 10px;
+  padding: 10px;
 }
 
 .panel {
@@ -93,19 +94,6 @@ main {
   padding: 6px 10px;
   background: #181836;
   font-size: 12px;
-  opacity: 0.85;
-}
-
-textarea {
-  flex: 1;
-  background: transparent;
-  color: var(--text);
-  border: none;
-  padding: 12px;
-  resize: none;
-  font-family: ui-monospace, Menlo, monospace;
-  font-size: 14px;
-  outline: none;
 }
 
 #preview {
@@ -113,7 +101,6 @@ textarea {
   height: 100%;
   border: none;
   background: white;
-  border-radius: 12px;
 }
 
 #console {
@@ -126,6 +113,32 @@ textarea {
   overflow-y: auto;
 }
 
+#tutor {
+  background: #0c1b17;
+  color: var(--hint);
+  font-size: 13px;
+  padding: 10px;
+  border-top: 1px solid #1e3f34;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10,10,20,0.85);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.overlay div {
+  background: #121232;
+  padding: 20px;
+  border-radius: 12px;
+  max-width: 420px;
+  text-align: center;
+}
+
 @media (max-width: 900px) {
   main { grid-template-columns: 1fr; }
 }
@@ -135,130 +148,137 @@ textarea {
 <body>
 
 <header>
-  <h1>DevStudio Playground</h1>
+  <strong>DevStudio Playground</strong>
   <div>
     <button class="secondary" onclick="addPanel()">＋ Panel</button>
-    <button onclick="run()">▶ Run / Preview</button>
+    <button class="secondary" onclick="toggleCurriculum()">📘 Learn</button>
+    <button onclick="run()">▶ Run</button>
   </div>
 </header>
 
 <main>
-  <div id="editor-area">
-    <div class="panel">
-      <div class="panel-header">Main Code (auto-detect)</div>
-      <textarea>
-<h1>Hello World</h1>
-<p>Edit me and press Run.</p>
-      </textarea>
-    </div>
-  </div>
+  <div id="editor-area"></div>
 
   <div class="panel">
     <iframe id="preview" sandbox="allow-scripts allow-same-origin"></iframe>
     <div id="console"></div>
+    <div id="tutor">AI Tutor: Start by editing the main panel.</div>
   </div>
 </main>
 
-<script>
-let pyodide = null;
-let pyReady = false;
+<div class="overlay" id="curriculum">
+  <div>
+    <h3>Welcome to DevStudio</h3>
+    <p>Start by writing HTML. Add CSS or JS using the + Panel button.</p>
+    <button onclick="toggleCurriculum()">Got it</button>
+  </div>
+</div>
 
-(async () => {
+<script>
+let pyodide, pyReady=false;
+let editors = [];
+
+(async()=>{
   try {
     pyodide = await loadPyodide();
     pyReady = true;
-  } catch (e) {
-    console.warn("Pyodide failed to load", e);
-  }
+  } catch {}
 })();
 
-function detectLanguage(code) {
-  if (code.trim().startsWith("<")) return "html";
-  if (/^\s*(def |import |print\()/m.test(code)) return "python";
-  if (/console\.log|function |\=\>/m.test(code)) return "javascript";
-  if (/{[^}]*:[^}]*;/.test(code)) return "css";
+function detectLanguage(code){
+  if(code.trim().startsWith("<")) return "html";
+  if(/def |import |print\(/.test(code)) return "python";
+  if(/console\.log|function|=>/.test(code)) return "javascript";
+  if(/{.*:.*;/.test(code)) return "css";
   return "html";
 }
 
-function addPanel() {
-  const panel = document.createElement("div");
-  panel.className = "panel";
-  panel.innerHTML = `
-    <div class="panel-header">Secondary Panel (auto)</div>
-    <textarea></textarea>
-  `;
-  document.getElementById("editor-area").appendChild(panel);
+function langExtension(lang){
+  if(lang==="html") return CM.html();
+  if(lang==="css") return CM.css();
+  if(lang==="javascript") return CM.javascript();
+  if(lang==="python") return CM.python();
+  return CM.html();
 }
 
-function collect() {
-  const panels = document.querySelectorAll("#editor-area textarea");
-  let data = { html: "", css: "", js: "", py: "" };
+function addPanel(content=""){
+  const panel=document.createElement("div");
+  panel.className="panel";
+  panel.innerHTML=`<div class="panel-header">Code Panel</div><div></div>`;
+  document.getElementById("editor-area").appendChild(panel);
 
-  panels.forEach(t => {
-    const code = t.value;
-    const lang = detectLanguage(code);
-    if (lang === "html") data.html += code;
-    if (lang === "css") data.css += code;
-    if (lang === "javascript") data.js += code;
-    if (lang === "python") data.py += code;
+  const editorDiv=panel.children[1];
+  const state=CM.EditorState.create({
+    doc: content || "<h1>Hello World</h1>",
+    extensions:[
+      CM.basicSetup,
+      CM.EditorView.updateListener.of(update=>{
+        autosave();
+        tutor(update.state.doc.toString());
+      })
+    ]
   });
+  const view=new CM.EditorView({state,parent:editorDiv});
+  editors.push(view);
+}
 
+function collect(){
+  let data={html:"",css:"",js:"",py:""};
+  editors.forEach(ed=>{
+    const code=ed.state.doc.toString();
+    const lang=detectLanguage(code);
+    data[lang==="javascript"?"js":lang]+=code;
+  });
   return data;
 }
 
-async function run() {
-  const consoleEl = document.getElementById("console");
-  consoleEl.textContent = "";
+async function run(){
+  const {html,css,js,py}=collect();
+  const consoleEl=document.getElementById("console");
+  consoleEl.textContent="";
 
-  const { html, css, js, py } = collect();
-
-  if (py.trim()) {
-    if (!pyReady) {
-      consoleEl.textContent = "Python runtime loading…";
-      return;
-    }
-    try {
-      const result = await pyodide.runPythonAsync(py);
-      if (result !== undefined) consoleEl.textContent += result + "\n";
-    } catch (e) {
-      consoleEl.textContent += e + "\n";
-    }
+  if(py.trim()){
+    if(!pyReady){consoleEl.textContent="Python loading…";return;}
+    try{consoleEl.textContent+=await pyodide.runPythonAsync(py);}
+    catch(e){consoleEl.textContent+=e;}
     return;
   }
 
-  const iframe = document.getElementById("preview");
-  const doc = iframe.contentDocument;
-
+  const iframe=document.getElementById("preview");
+  const doc=iframe.contentDocument;
   doc.open();
-  doc.write(`
-<!DOCTYPE html>
-<html>
-<head>
-<style>${css}</style>
-</head>
-<body>
-${html}
-<script>
-try {
-${js}
-} catch (e) {
-parent.document.getElementById("console").textContent += e + "\\n";
-}
-</script>
-</body>
-</html>
-  `);
+  doc.write(`<!doctype html><html><style>${css}</style><body>${html}<script>${js}<\/script></body></html>`);
   doc.close();
 }
 
-/* Service Worker — SAFE */
-if (
-  'serviceWorker' in navigator &&
-  location.protocol !== 'file:'
-) {
-  navigator.serviceWorker.register('sw.js')
-    .then(() => console.log('SW registered'))
-    .catch(err => console.warn('SW skipped', err));
+function tutor(code){
+  const t=document.getElementById("tutor");
+  if(code.includes("<h1>")) t.textContent="AI Tutor: Great! You’re using headings.";
+  else if(code.includes("style")) t.textContent="AI Tutor: Styles affect presentation.";
+  else if(code.includes("def ")) t.textContent="AI Tutor: Python detected.";
+  else t.textContent="AI Tutor: Keep experimenting!";
+}
+
+function autosave(){
+  localStorage.setItem("devstudio",JSON.stringify(editors.map(e=>e.state.doc.toString())));
+}
+
+function restore(){
+  const data=JSON.parse(localStorage.getItem("devstudio")||"[]");
+  if(data.length) data.forEach(c=>addPanel(c));
+  else addPanel();
+}
+
+function toggleCurriculum(){
+  const o=document.getElementById("curriculum");
+  o.style.display=o.style.display==="flex"?"none":"flex";
+}
+
+restore();
+
+/* Service Worker SAFE */
+if('serviceWorker'in navigator && location.protocol!=='file:'){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 </script>
 
