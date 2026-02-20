@@ -1,6 +1,6 @@
 {
-  "name": "Sandbox IDE",
-  "short_name": "SandboxIDE",
+  "name": "S•IDE",
+  "short_name": "S•IDE",
   "description": "A lightweight, zero-config browser workstation for web development.",
   "start_url": "./",
   "display": "standalone",
