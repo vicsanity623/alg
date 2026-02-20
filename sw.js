@@ -1,12 +1,10 @@
-const GAME_VERSION = 'v6.0.0.0.1'; // Incremented version
-const CACHE_NAME = `AIC-${GAME_VERSION}`;
+const GAME_VERSION = 'v0.0.1'; // Incremented version
+const CACHE_NAME = `SandIDE-${GAME_VERSION}`;
 
 // Added manifest.json to the assets list
 const ASSETS = [
     './',
     './index.html',
-    './artist.html',
-    './gallery.js',
     './manifest.json' 
 ];
 
