@@ -4,7 +4,8 @@ const CACHE_NAME = 'sandbox-ide-v0.0.1';
 const urlsToCache = [
   './',
   './manifest.json',
-  './side.png', // Update with your actual image name if needed
+  './SIDE.PNG',
+  './SIDE_512.PNG',
   // CodeMirror Core
   'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css',
