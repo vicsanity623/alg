@@ -13,7 +13,7 @@
       "type": "image/png"
     },
     {
-      "src": "SIDE.png",
+      "src": "SIDE_512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
