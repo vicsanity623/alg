@@ -167,9 +167,128 @@
     <script>
         // 1. Initial Default State
         const defaultFiles = {
-            "index.html": `<canvas id="game"></canvas>\n<script src="index.js"><\/script>`,
-            "index.js": `const BACKGROUND = "#101010";\nconst FOREGROUND = "#50FF50";\n\nconsole.log("Canvas Element:", game);\ngame.width = window.innerWidth;\ngame.height = window.innerHeight;\nconst ctx = game.getContext("2d");\nconsole.log("Context:", ctx);\n\nfunction clear() {\n  ctx.fillStyle = BACKGROUND;\n  ctx.fillRect(0, 0, game.width, game.height);\n}\n\nfunction point(x, y) {\n  const s = 40;\n  ctx.fillStyle = FOREGROUND;\n  ctx.fillRect(x, y, s, s);\n}\n\nclear();\npoint(50, 50);\npoint(150, 100);`,
-            "README.md": `# Welcome to SandboxIDE\n\n- Write HTML/JS/CSS.\n- Click **Run**.\n- Check out the bottom panel!\n\n*(You can run this Markdown file too!)*`
+            "index.html": `<canvas id="game"></canvas>\n<script src="index.js"><\\/script>`,
+            "index.js": `const BACKGROUND = "#101010"
+const FOREGROUND = "#50FF50"
+
+console.log(game)
+game.width = 800
+game.height = 800
+const ctx = game.getContext("2d")
+console.log(ctx)
+
+function clear() {
+  ctx.fillStyle = BACKGROUND
+  ctx.fillRect(0, 0, game.width, game.height)
+}
+
+function point({x, y}) {
+  const s = 20
+  ctx.fillStyle = FOREGROUND
+  ctx.fillRect(x - s/2, y - s/2, s, s)
+}
+
+function line(p1, p2) {
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = FOREGROUND;
+  ctx.beginPath();
+  ctx.moveTo(p1.x, p1.y);
+  ctx.lineTo(p2.x, p2.y);
+  ctx.stroke();
+}
+
+function screen(p) {
+  return {
+    x: (p.x + 1)/2*game.width,
+    y: (1 - (p.y + 1)/2)*game.height,
+  }
+}
+
+function project({x, y, z}) {
+  return {
+    x: x/z,
+    y: y/z,
+  }
+}
+
+const FPS = 60;
+
+function translate_z({x, y, z}, dz) {
+  return {x, y, z: z + dz};
+}
+
+function rotate_xz({x, y, z}, angle) {
+  const c = Math.cos(angle);
+  const s = Math.sin(angle)
+  return {
+    x: x*c-z*s,
+    y,
+    z: x*s+z*c,
+  };
+}
+
+const vs = [
+  {x:  0.25, y: 0.25, z:  0.25},
+  {x: -0.25, y: 0.25, z:  0.25},
+  {x: -0.25, y: -0.25, z:  0.25},
+  {x:  0.25, y: -0.25, z:  0.25},
+
+  {x:  0.25, y: 0.25, z: -0.25},
+  {x: -0.25, y: 0.25, z: -0.25},
+  {x: -0.25, y: -0.25, z: -0.25},
+  {x:  0.25, y: -0.25, z: -0.25},
+]
+
+const fs = [
+  [0, 1, 2, 3],
+  [4, 5, 6, 7],
+  [0, 4],
+  [1, 5],
+  [2, 6],
+  [3, 7],
+]
+
+let dz = 1;
+let angle = 0;
+
+function frame() {
+  const dt = 1/FPS;
+  angle += Math.PI*dt;
+  clear()
+  
+  //for (const v of vs) {
+  //  point(screen(project(translate_z(rotate_xz(v, angle), dz))))
+  //}
+  
+  for (const f of fs) {
+    for (let i = 0; i < f.length; ++i) {
+      const a = vs[f[i]];
+      const b = vs[f[(i+1)%f.length]];
+      
+      line(
+        screen(project(translate_z(rotate_xz(a, angle), dz))),
+        screen(project(translate_z(rotate_xz(b, angle), dz)))
+      );
+    }
+  }
+  
+  setTimeout(frame, 1000/FPS);
+}
+
+setTimeout(frame, 1000/FPS);`,
+            "README.md": `# Welcome to SandboxIDE
+
+- Write HTML/JS/CSS.
+- Click **Run**.
+- Check out the bottom panel!
+
+*(You can run this Markdown file too!)*
+
+**Demonstration code Provided by: @Tscoding https://www.youtube.com/@Tsoding**
+- Showcasing the following formula:
+*(x, y, z)
+*x' = x/z*
+*y' = y/z*`
         };
 
         // Load from LocalStorage if exists, otherwise use defaults
@@ -209,7 +328,7 @@
 
         // Tab Button Function (Crucial for Mobile)
         function insertTab() {
-            editor.replaceSelection("    "); // Inserts two spaces
+            editor.replaceSelection("    ");
             editor.focus();
         }
 
@@ -229,11 +348,7 @@
         function openFile(fileName) {
             currentFile = fileName;
             document.getElementById("current-file-name").innerText = fileName;
-            
-            // Set Editor Value without triggering a false "change" save
             editor.setValue(files[fileName] || "");
-            
-            // Switch syntax highlighting mode
             if (fileName.endsWith(".js")) editor.setOption("mode", "javascript");
             else if (fileName.endsWith(".css")) editor.setOption("mode", "css");
             else if (fileName.endsWith(".md")) editor.setOption("mode", "markdown");
@@ -319,11 +434,7 @@
 
             // Normal HTML Bundling
             let htmlContent = files["index.html"] || "<h1>No index.html found. Create one to run web apps!</h1>";
-
-            // Inject the console interceptor at the very top
             htmlContent = consoleInterceptorScript + htmlContent;
-
-            // Bundle local JS
             htmlContent = htmlContent.replace(/<script\s+[^>]*src=["']([^"']+)["'][^>]*>[\s\S]*?<\/script>/gi, (match, src) => {
                 if (files[src]) {
                     const safeJs = files[src].replace(/<\/script>/gi, "<\\/script>");
@@ -332,7 +443,6 @@
                 return match; 
             });
 
-            // Bundle local CSS
             htmlContent = htmlContent.replace(/<link\s+[^>]*href=["']([^"']+)["'][^>]*>/gi, (match, href) => {
                 if (files[href]) {
                     return `<style>${files[href]}</style>`;
@@ -375,10 +485,10 @@
         }
 
         // Initialize App
-        if (!files["index.html"]) files = { ...defaultFiles }; // Fail-safe
+        if (!files["index.html"]) files = { ...defaultFiles };
         renderFileList();
-        openFile("index.js"); // Open JS by default to show it's there
-        runCode(); // Run automatically on load
+        openFile("index.js");
+        runCode();
 
         // SERVICE WORKER REGISTRATION
         if ('serviceWorker' in navigator) {
